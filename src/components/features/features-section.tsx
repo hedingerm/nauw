@@ -50,7 +50,7 @@ export function FeaturesSection() {
             Leistungsstarke Funktionen für Ihr Unternehmen
           </p>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            CalBok bietet Ihnen alle Tools, die Sie für eine effiziente Terminverwaltung benötigen.
+            nauw bietet Ihnen alle Tools, die Sie für eine effiziente Terminverwaltung benötigen.
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">

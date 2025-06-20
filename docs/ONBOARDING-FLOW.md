@@ -2,7 +2,7 @@
 
 ## Overview
 
-The onboarding flow is a comprehensive 5-step wizard that collects all necessary information to get a business operational on CalBok immediately after signup, as per requirement FR-01.1 in the PRD.
+The onboarding flow is a comprehensive 5-step wizard that collects all necessary information to get a business operational on nauw immediately after signup, as per requirement FR-01.1 in the PRD.
 
 ## Onboarding Steps
 
@@ -129,4 +129,4 @@ After completing onboarding, businesses can:
 - Start accepting bookings
 - View analytics and reports
 
-The onboarding ensures businesses have the minimum viable setup to start using CalBok immediately.
+The onboarding ensures businesses have the minimum viable setup to start using nauw immediately.

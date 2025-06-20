@@ -272,7 +272,7 @@ export default function OnboardingPage() {
       const result = await BusinessService.completeOnboarding(submissionData)
 
       if (result.success) {
-        toast.success('Willkommen bei CalBok!', {
+        toast.success('Willkommen bei nauw!', {
           description: 'Ihr Konto wurde erfolgreich eingerichtet.',
         })
         router.push('/dashboard')
@@ -304,7 +304,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-center">Willkommen bei CalBok!</h1>
+          <h1 className="text-3xl font-bold text-center">Willkommen bei nauw!</h1>
           <p className="text-center text-muted-foreground mt-2">
             Richten Sie Ihr Geschäft in wenigen Schritten ein
           </p>

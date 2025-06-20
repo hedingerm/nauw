@@ -76,7 +76,7 @@ export default function DashboardPage() {
   if (!business) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <h1 className="text-2xl font-semibold">Willkommen bei CalBok!</h1>
+        <h1 className="text-2xl font-semibold">Willkommen bei nauw!</h1>
         <p className="text-muted-foreground">
           Sie müssen zuerst Ihr Unternehmen einrichten.
         </p>

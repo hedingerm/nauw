@@ -36,6 +36,44 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma
-prisma/migrations/
-/src/generated/prisma
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Testing
+jest-results.json
+cypress/screenshots/
+cypress/videos/
+
+# Build outputs
+dist/
+
+# Temporary files
+.temp/
+.cache/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Backup files
+*.backup
+*.bak
+
+# Supabase
+.supabase/
+
+# Lock files (keep package-lock.json)
+yarn.lock
+pnpm-lock.yaml

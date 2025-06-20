@@ -173,7 +173,7 @@ export default function BusinessPortalLayout({
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex h-16 items-center justify-between px-6">
-          <h2 className="text-xl font-semibold">CalBok Business</h2>
+          <h2 className="text-xl font-semibold">nauw Business</h2>
           <Button
             variant="ghost"
             size="icon"
@@ -291,7 +291,7 @@ export default function BusinessPortalLayout({
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold">CalBok Business</h1>
+          <h1 className="text-lg font-semibold">nauw Business</h1>
           <div className="w-10" /> {/* Spacer for center alignment */}
         </div>
 

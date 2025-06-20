@@ -18,7 +18,7 @@ export function Footer() {
           </div>
           <div className="mt-8 md:order-1 md:mt-0">
             <p className="text-center text-xs leading-5 text-gray-400">
-              &copy; {new Date().getFullYear()} CalBok. Alle Rechte vorbehalten.
+              &copy; {new Date().getFullYear()} nauw. Alle Rechte vorbehalten.
             </p>
           </div>
         </div>

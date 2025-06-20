@@ -12,21 +12,21 @@ Go to: https://supabase.com/dashboard/project/eyjnojfuyelrdkfzgboj/auth/template
 #### Confirm Signup Template
 Update the template with German text:
 
-**Subject**: `Bestätigen Sie Ihre E-Mail-Adresse für CalBok`
+**Subject**: `Bestätigen Sie Ihre E-Mail-Adresse für nauw`
 
 **Body**:
 ```html
-<h2>Willkommen bei CalBok!</h2>
+<h2>Willkommen bei nauw!</h2>
 <p>Bitte bestätigen Sie Ihre E-Mail-Adresse, indem Sie auf den folgenden Link klicken:</p>
 <p><a href="{{ .ConfirmationURL }}">E-Mail-Adresse bestätigen</a></p>
 <p>Oder kopieren Sie diesen Link in Ihren Browser:</p>
 <p>{{ .ConfirmationURL }}</p>
 <p>Dieser Link ist 24 Stunden gültig.</p>
-<p>Viele Grüße,<br>Ihr CalBok Team</p>
+<p>Viele Grüße,<br>Ihr nauw Team</p>
 ```
 
 #### Reset Password Template
-**Subject**: `Passwort zurücksetzen - CalBok`
+**Subject**: `Passwort zurücksetzen - nauw`
 
 **Body**:
 ```html
@@ -37,7 +37,7 @@ Update the template with German text:
 <p>{{ .ConfirmationURL }}</p>
 <p>Dieser Link ist 1 Stunde gültig.</p>
 <p>Falls Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.</p>
-<p>Viele Grüße,<br>Ihr CalBok Team</p>
+<p>Viele Grüße,<br>Ihr nauw Team</p>
 ```
 
 ### 3. Configure Redirect URLs

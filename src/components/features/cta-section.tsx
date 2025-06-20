@@ -10,7 +10,7 @@ export function CTASection() {
             Bereit für mehr Effizienz?
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-primary-foreground/90">
-            Starten Sie noch heute mit CalBok und erleben Sie, wie einfach 
+            Starten Sie noch heute mit nauw und erleben Sie, wie einfach 
             professionelle Terminverwaltung sein kann.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
