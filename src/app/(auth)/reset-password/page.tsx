@@ -37,30 +37,41 @@ export default function ResetPasswordPage() {
   })
 
   useEffect(() => {
-    // Handle the auth code exchange and check session
-    const handleAuthExchange = async () => {
+    // Handle the auth flow from email link
+    const handleAuthFlow = async () => {
       try {
-        // First, exchange the code from the URL for a session
-        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href)
+        // Get the hash fragment from the URL
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const type = hashParams.get('type')
         
-        if (error) {
-          console.error('Error exchanging code:', error)
-          setIsValidLink(false)
-          return
-        }
-        
-        // Then check if we have a valid session
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) {
-          setIsValidLink(false)
+        // Check if this is a recovery (password reset) flow
+        if (type === 'recovery' && accessToken) {
+          // Set the session with the access token
+          const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+          
+          if (error || !user) {
+            console.error('Error getting user:', error)
+            setIsValidLink(false)
+            return
+          }
+          
+          // Session is valid, user can reset password
+          setIsValidLink(true)
+        } else {
+          // Check if there's an existing session (e.g., from code exchange)
+          const { data: { session } } = await supabase.auth.getSession()
+          if (!session) {
+            setIsValidLink(false)
+          }
         }
       } catch (error) {
-        console.error('Auth exchange error:', error)
+        console.error('Auth flow error:', error)
         setIsValidLink(false)
       }
     }
     
-    handleAuthExchange()
+    handleAuthFlow()
   }, [supabase])
 
   const onSubmit = async (data: ResetPasswordData) => {
@@ -121,6 +132,9 @@ export default function ResetPasswordPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Hidden username field for accessibility */}
+          <input type="email" autoComplete="username" className="sr-only" />
+          
           <div>
             <Label htmlFor="password">Neues Passwort</Label>
             <Input
