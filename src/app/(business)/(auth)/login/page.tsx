@@ -89,7 +89,7 @@ export default function LoginPage() {
             </div>
             <div className="flex items-center justify-end">
               <Link
-                href="/auth/forgot-password"
+                href="/forgot-password"
                 className="text-sm text-muted-foreground hover:text-primary"
               >
                 Passwort vergessen?
