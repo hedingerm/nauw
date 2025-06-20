@@ -10,7 +10,7 @@ import { Button } from '@/src/components/ui/button'
 import { Input } from '@/src/components/ui/input'
 import { Label } from '@/src/components/ui/label'
 import { createClient } from '@/src/lib/supabase/client'
-import { useToast } from '@/src/hooks/use-toast'
+import { toast } from 'sonner'
 
 const resetPasswordSchema = z.object({
   password: z.string().min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein'),
@@ -25,7 +25,6 @@ type ResetPasswordData = z.infer<typeof resetPasswordSchema>
 export default function ResetPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isValidLink, setIsValidLink] = useState(true)
-  const { toast } = useToast()
   const router = useRouter()
   const supabase = createClient()
 
@@ -38,14 +37,30 @@ export default function ResetPasswordPage() {
   })
 
   useEffect(() => {
-    // Check if we have a valid session from the reset link
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+    // Handle the auth code exchange and check session
+    const handleAuthExchange = async () => {
+      try {
+        // First, exchange the code from the URL for a session
+        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href)
+        
+        if (error) {
+          console.error('Error exchanging code:', error)
+          setIsValidLink(false)
+          return
+        }
+        
+        // Then check if we have a valid session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          setIsValidLink(false)
+        }
+      } catch (error) {
+        console.error('Auth exchange error:', error)
         setIsValidLink(false)
       }
     }
-    checkSession()
+    
+    handleAuthExchange()
   }, [supabase])
 
   const onSubmit = async (data: ResetPasswordData) => {
@@ -57,16 +72,9 @@ export default function ResetPasswordPage() {
       })
 
       if (error) {
-        toast({
-          title: 'Fehler',
-          description: error.message,
-          variant: 'destructive',
-        })
+        toast.error(error.message || 'Fehler beim Zurücksetzen des Passworts')
       } else {
-        toast({
-          title: 'Erfolg',
-          description: 'Ihr Passwort wurde erfolgreich zurückgesetzt',
-        })
+        toast.success('Ihr Passwort wurde erfolgreich zurückgesetzt')
         
         // Sign out and redirect to login
         await supabase.auth.signOut()
@@ -75,11 +83,7 @@ export default function ResetPasswordPage() {
         }, 2000)
       }
     } catch (error) {
-      toast({
-        title: 'Fehler',
-        description: 'Ein unerwarteter Fehler ist aufgetreten',
-        variant: 'destructive',
-      })
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
     } finally {
       setIsSubmitting(false)
     }

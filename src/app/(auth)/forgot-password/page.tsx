@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { ArrowLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { Button } from '@/src/components/ui/button'
 import { Input } from '@/src/components/ui/input'
 import { Label } from '@/src/components/ui/label'
 import { createClient } from '@/src/lib/supabase/client'
-import { useToast } from '@/src/hooks/use-toast'
+import { toast } from 'sonner'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Bitte geben Sie eine gültige E-Mail-Adresse ein'),
@@ -21,7 +21,6 @@ type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>
 export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const { toast } = useToast()
   const supabase = createClient()
 
   const {
@@ -37,24 +36,16 @@ export default function ForgotPasswordPage() {
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       })
 
       if (error) {
-        toast({
-          title: 'Fehler',
-          description: error.message,
-          variant: 'destructive',
-        })
+        toast.error(error.message || 'Fehler beim Senden der E-Mail')
       } else {
         setIsSuccess(true)
       }
     } catch (error) {
-      toast({
-        title: 'Fehler',
-        description: 'Ein unerwarteter Fehler ist aufgetreten',
-        variant: 'destructive',
-      })
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
     } finally {
       setIsSubmitting(false)
     }
@@ -74,7 +65,7 @@ export default function ForgotPasswordPage() {
           <div className="mt-8 space-y-2">
             <Button asChild variant="outline" className="w-full">
               <Link href="/login">
-                <ArrowLeftIcon className="mr-2 h-4 w-4" />
+                <ArrowLeft className="mr-2 h-4 w-4" />
                 Zurück zum Login
               </Link>
             </Button>
@@ -122,7 +113,7 @@ export default function ForgotPasswordPage() {
               href="/login"
               className="text-sm text-muted-foreground hover:text-primary"
             >
-              <ArrowLeftIcon className="inline mr-1 h-3 w-3" />
+              <ArrowLeft className="inline mr-1 h-3 w-3" />
               Zurück zum Login
             </Link>
           </div>
