@@ -157,6 +157,7 @@ export type Database = {
           subscriptionTier: string
           type: string
           updatedAt: string
+          userId: string | null
         }
         Insert: {
           acceptAppointmentsAutomatically?: boolean
@@ -175,6 +176,7 @@ export type Database = {
           subscriptionTier?: string
           type: string
           updatedAt?: string
+          userId?: string | null
         }
         Update: {
           acceptAppointmentsAutomatically?: boolean
@@ -193,6 +195,7 @@ export type Database = {
           subscriptionTier?: string
           type?: string
           updatedAt?: string
+          userId?: string | null
         }
         Relationships: []
       }

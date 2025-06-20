@@ -21,9 +21,17 @@ export class BusinessService {
   static async getCurrentBusiness(): Promise<Business | null> {
     const supabase = await this.getClient()
     
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      console.error('No authenticated user')
+      return null
+    }
+    
     const { data, error } = await supabase
       .from('Business')
       .select('*')
+      .eq('userId', user.id)
       .single()
     
     if (error) {
@@ -223,6 +231,7 @@ export class BusinessService {
         country: data.business.country || 'Schweiz',
         description: data.business.description || null,
         businessHours: transformedBusinessHours,
+        userId: user.id, // Link business to authenticated user
       }
 
       const { data: business, error: businessError } = await supabase

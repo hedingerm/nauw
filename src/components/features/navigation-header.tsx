@@ -39,6 +39,9 @@ export function NavigationHeader() {
             </>
           ) : (
             <>
+              <span className="hidden sm:inline-flex items-center text-sm text-muted-foreground mr-4">
+                Ab CHF 29/Monat
+              </span>
               <Button
                 variant="ghost"
                 onClick={() => router.push('/login')}

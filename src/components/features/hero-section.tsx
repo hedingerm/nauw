@@ -6,13 +6,12 @@ export function HeroSection() {
     <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50 px-6 py-24 sm:py-32 lg:px-8">
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-          Termine online buchen – 
-          <span className="text-primary"> einfach und schnell</span>
+          Nie wieder verpasste Termine – 
+          <span className="text-primary">Die Terminbuchung, die Ihre Kunden lieben werden</span>
         </h1>
         <p className="mt-6 text-lg leading-8 text-gray-600">
-          Die moderne Terminbuchungsplattform für Ihr Unternehmen. 
-          Sparen Sie Zeit, reduzieren Sie No-Shows und begeistern Sie Ihre Kunden 
-          mit einem professionellen Buchungserlebnis.
+          Reduzieren Sie No-Shows um bis zu 70% und sparen Sie 10+ Stunden pro Woche 
+          mit automatischer Terminverwaltung. Speziell entwickelt für Schweizer Unternehmen.
         </p>
         <div className="mt-10 flex items-center justify-center gap-x-6">
           <Button size="lg" asChild>
@@ -27,8 +26,38 @@ export function HeroSection() {
           </Button>
         </div>
         <p className="mt-4 text-sm text-gray-500">
-          Keine Kreditkarte erforderlich • 30 Tage kostenlos testen
+          Keine Kreditkarte erforderlich • 30 Tage kostenlos testen • 100% Geld-zurück-Garantie
         </p>
+        <div className="mt-8 flex items-center justify-center gap-x-4 text-sm text-gray-600">
+          <span className="flex items-center gap-x-1">
+            <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            500+ Schweizer Unternehmen vertrauen uns
+          </span>
+          <span className="flex items-center gap-x-1">
+            <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            DSGVO-konform & Hosting in der Schweiz
+          </span>
+        </div>
+      </div>
+      
+      {/* Product Screenshot Placeholder */}
+      <div className="mx-auto max-w-6xl px-6 lg:px-8 mt-16">
+        <div className="relative rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:rounded-2xl">
+          <div className="aspect-[16/9] rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+            <div className="text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="mt-4 text-sm text-gray-600">
+                Produktscreenshot: Zeigt die intuitive Buchungsoberfläche
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
