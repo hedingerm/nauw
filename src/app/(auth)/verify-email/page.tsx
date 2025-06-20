@@ -1,46 +1,84 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/src/components/ui/button'
 import { createClient } from '@/src/lib/supabase/client'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const [verifying, setVerifying] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
-    const verifyEmail = async () => {
+    const handleEmailVerification = async () => {
       try {
-        // Get the token from the URL
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
-        if (error) {
-          setError('Ungültiger oder abgelaufener Verifizierungslink')
+        // Check if there's an error in the URL params (Supabase adds this on failure)
+        const errorDescription = searchParams.get('error_description')
+        if (errorDescription) {
+          setError(errorDescription)
           setVerifying(false)
           return
         }
 
-        if (session) {
-          // Email is verified, redirect to dashboard
-          setTimeout(() => {
-            router.push('/dashboard')
-          }, 2000)
-        }
+        // Check if we have the necessary auth params from Supabase
+        const token_hash = searchParams.get('token_hash')
+        const type = searchParams.get('type')
         
-        setVerifying(false)
+        if (token_hash && type === 'email') {
+          // Supabase has already verified the email when redirecting here
+          // Just check if we have a valid session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          
+          if (sessionError) {
+            console.error('Session error:', sessionError)
+            setError('Fehler bei der Verifizierung. Bitte versuchen Sie es erneut.')
+            setVerifying(false)
+            return
+          }
+
+          if (session) {
+            setSuccess(true)
+            setVerifying(false)
+            
+            // Check if user has completed onboarding
+            const { data: business } = await supabase
+              .from('Business')
+              .select('id')
+              .single()
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+              if (business) {
+                router.push('/dashboard')
+              } else {
+                router.push('/onboarding')
+              }
+            }, 2000)
+          } else {
+            // No session but also no error - email was verified but user needs to log in
+            setSuccess(true)
+            setVerifying(false)
+          }
+        } else {
+          // No verification params - user may have navigated here directly
+          setError('Kein Verifizierungstoken gefunden. Bitte verwenden Sie den Link aus Ihrer E-Mail.')
+          setVerifying(false)
+        }
       } catch (err) {
-        setError('Ein Fehler ist aufgetreten')
+        console.error('Verification error:', err)
+        setError('Ein unerwarteter Fehler ist aufgetreten')
         setVerifying(false)
       }
     }
 
-    verifyEmail()
-  }, [router, supabase])
+    handleEmailVerification()
+  }, [router, searchParams, supabase])
 
   if (verifying) {
     return (
@@ -71,7 +109,7 @@ export default function VerifyEmailPage() {
                 </Button>
               </div>
             </>
-          ) : (
+          ) : success ? (
             <>
               <CheckCircleIcon className="mx-auto h-12 w-12 text-green-500" />
               <h2 className="mt-6 text-3xl font-bold">E-Mail verifiziert!</h2>
@@ -80,7 +118,20 @@ export default function VerifyEmailPage() {
               </p>
               <div className="mt-6">
                 <Button asChild className="w-full">
-                  <Link href="/dashboard">Zum Dashboard</Link>
+                  <Link href="/login">Zum Login</Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <XCircleIcon className="mx-auto h-12 w-12 text-yellow-500" />
+              <h2 className="mt-6 text-3xl font-bold">Verifizierung ausstehend</h2>
+              <p className="mt-2 text-muted-foreground">
+                Bitte verwenden Sie den Link in Ihrer E-Mail zur Verifizierung.
+              </p>
+              <div className="mt-6">
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/login">Zum Login</Link>
                 </Button>
               </div>
             </>
@@ -88,5 +139,20 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Laden...</p>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   )
 }

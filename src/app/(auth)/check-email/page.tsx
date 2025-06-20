@@ -29,6 +29,9 @@ export default function CheckEmailPage() {
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/verify-email`,
+        }
       })
 
       if (error) {
