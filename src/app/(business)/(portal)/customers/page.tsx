@@ -95,6 +95,7 @@ export default function CustomersPage() {
       const result = await CustomerService.list({
         businessId: business.id,
         isActive: filterActive === null ? undefined : filterActive,
+        vipStatus: filterVip === null ? undefined : filterVip,
         sortBy,
         sortOrder,
         page,
@@ -132,7 +133,19 @@ export default function CustomersPage() {
   }
 
   const handleSearch = async () => {
-    if (!business || searchQuery.length < 2) return
+    if (!business) {
+      if (searchQuery.length === 0) {
+        // If search is cleared, reload with filters
+        loadCustomers()
+      }
+      return
+    }
+
+    if (searchQuery.length < 2) {
+      // If search query is too short, reload with filters
+      loadCustomers()
+      return
+    }
 
     try {
       setLoading(true)
@@ -287,6 +300,17 @@ export default function CustomersPage() {
                 />
               </div>
               <Button onClick={handleSearch}>Suchen</Button>
+              {searchQuery && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchQuery('')
+                    loadCustomers()
+                  }}
+                >
+                  Zurücksetzen
+                </Button>
+              )}
             </div>
             
             <div className="flex gap-2 flex-wrap">

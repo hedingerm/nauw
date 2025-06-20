@@ -153,8 +153,20 @@ export function AppointmentCreateDialog({
       if (initialEmployeeId) {
         form.setValue('employeeId', initialEmployeeId)
       }
-      // Reset filtered employees when dialog opens
+      // Check if there's already a selected service and load employees for it
+      const currentServiceId = form.getValues('serviceId')
+      if (currentServiceId) {
+        loadEmployeesForService(currentServiceId)
+      } else {
+        // Only reset filtered employees if no service is selected
+        setFilteredEmployees([])
+      }
+    } else {
+      // Reset form and state when dialog closes
+      form.reset()
+      setSelectedCustomer(null)
       setFilteredEmployees([])
+      setAvailableSlots([])
     }
   }, [open, businessId, initialEmployeeId, form])
 

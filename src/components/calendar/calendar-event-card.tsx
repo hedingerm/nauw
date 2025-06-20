@@ -10,9 +10,10 @@ import { AppointmentDetailDialog } from './appointment-detail-dialog'
 interface CalendarEventCardProps {
   event: CalendarEvent
   variant?: 'full' | 'compact'
+  onUpdate?: () => void
 }
 
-export function CalendarEventCard({ event, variant = 'full' }: CalendarEventCardProps) {
+export function CalendarEventCard({ event, variant = 'full', onUpdate }: CalendarEventCardProps) {
   const [detailOpen, setDetailOpen] = useState(false)
   const timeRange = `${format(event.start, 'HH:mm')} - ${format(event.end, 'HH:mm')}`
   
@@ -38,6 +39,7 @@ export function CalendarEventCard({ event, variant = 'full' }: CalendarEventCard
           appointmentId={event.id}
           open={detailOpen}
           onOpenChange={setDetailOpen}
+          onSuccess={onUpdate}
         />
       </>
     )
@@ -60,6 +62,7 @@ export function CalendarEventCard({ event, variant = 'full' }: CalendarEventCard
         appointmentId={event.id}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onSuccess={onUpdate}
       />
     </>
   )

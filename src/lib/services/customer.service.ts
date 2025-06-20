@@ -235,7 +235,7 @@ export class CustomerService {
     
     // Validate input
     const validatedInput = filterCustomersSchema.parse(input)
-    const { businessId, isActive, sortBy, sortOrder, page, limit } = validatedInput
+    const { businessId, isActive, vipStatus, sortBy, sortOrder, page, limit } = validatedInput
     
     let query = supabase
       .from('Customer')
@@ -252,6 +252,10 @@ export class CustomerService {
     
     if (isActive !== undefined) {
       query = query.eq('isActive', isActive)
+    }
+    
+    if (vipStatus !== undefined) {
+      query = query.eq('vipStatus', vipStatus)
     }
     
     // Apply sorting

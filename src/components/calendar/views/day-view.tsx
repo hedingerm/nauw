@@ -349,7 +349,7 @@ export function DayView({
                           height: getHeightForDuration(event.start, event.end) + 'px',
                         }}
                       >
-                        <CalendarEventCard event={event} />
+                        <CalendarEventCard event={event} onUpdate={loadData} />
                       </div>
                     ))}
                   </div>

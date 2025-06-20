@@ -76,6 +76,7 @@ export const searchCustomersSchema = z.object({
 export const filterCustomersSchema = z.object({
   businessId: z.string().uuid('Ungültige Business-ID'),
   isActive: z.boolean().optional(),
+  vipStatus: z.boolean().optional(),
   hasAppointments: z.boolean().optional(),
   sortBy: z.enum(['name', 'createdAt', 'lastAppointment']).default('name'),
   sortOrder: z.enum(['asc', 'desc']).default('asc'),

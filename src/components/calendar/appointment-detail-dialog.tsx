@@ -29,24 +29,28 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react'
 
 interface AppointmentDetailDialogProps {
   appointmentId: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
 export function AppointmentDetailDialog({
   appointmentId,
   open,
   onOpenChange,
+  onSuccess,
 }: AppointmentDetailDialogProps) {
   const [appointment, setAppointment] = useState<AppointmentWithRelations | null>(null)
   const [customer, setCustomer] = useState<CustomerWithRelations | null>(null)
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     if (open && appointmentId) {
@@ -100,6 +104,23 @@ export function AppointmentDetailDialog({
       toast.error(error.message || 'Fehler beim Aktualisieren des Status')
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!appointment) return
+    
+    try {
+      setUpdating(true)
+      await AppointmentService.delete(appointment.id)
+      toast.success('Termin erfolgreich gelöscht')
+      onOpenChange(false)
+      onSuccess?.()
+    } catch (error: any) {
+      toast.error(error.message || 'Fehler beim Löschen des Termins')
+    } finally {
+      setUpdating(false)
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -259,6 +280,48 @@ export function AppointmentDetailDialog({
                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* Delete Button */}
+            <div className="pt-4 border-t">
+              {!showDeleteConfirm ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={updating}
+                  className="w-full"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Termin löschen
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-destructive font-medium">
+                    Möchten Sie diesen Termin wirklich löschen?
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDelete}
+                      disabled={updating}
+                      className="flex-1"
+                    >
+                      Ja, löschen
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={updating}
+                      className="flex-1"
+                    >
+                      Abbrechen
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 

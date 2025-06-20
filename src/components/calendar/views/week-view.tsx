@@ -387,7 +387,7 @@ export function WeekView({
                               height: height + 'px',
                             }}
                           >
-                            <CalendarEventCard event={event} variant="compact" />
+                            <CalendarEventCard event={event} variant="compact" onUpdate={loadData} />
                           </div>
                         )
                       })}
