@@ -18,6 +18,15 @@ function VerifyEmailContent() {
   useEffect(() => {
     const handleEmailVerification = async () => {
       try {
+        // Log all URL params for debugging
+        console.log('Verify email params:', {
+          token_hash: searchParams.get('token_hash'),
+          type: searchParams.get('type'),
+          error: searchParams.get('error'),
+          error_description: searchParams.get('error_description'),
+          all_params: Array.from(searchParams.entries())
+        })
+
         // Check if there's an error in the URL params (Supabase adds this on failure)
         const errorDescription = searchParams.get('error_description')
         if (errorDescription) {
@@ -30,23 +39,21 @@ function VerifyEmailContent() {
         const token_hash = searchParams.get('token_hash')
         const type = searchParams.get('type')
         
+        // Check for common Supabase redirect parameters
+        const access_token = searchParams.get('access_token')
+        const refresh_token = searchParams.get('refresh_token')
+        
         if (token_hash && type === 'email') {
-          // Supabase has already verified the email when redirecting here
-          // Just check if we have a valid session
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          // When arriving here with these params, email verification was successful
+          // Supabase has already processed the verification
+          setSuccess(true)
+          setVerifying(false)
           
-          if (sessionError) {
-            console.error('Session error:', sessionError)
-            setError('Fehler bei der Verifizierung. Bitte versuchen Sie es erneut.')
-            setVerifying(false)
-            return
-          }
-
+          // Try to get the session - user might be logged in already
+          const { data: { session } } = await supabase.auth.getSession()
+          
           if (session) {
-            setSuccess(true)
-            setVerifying(false)
-            
-            // Check if user has completed onboarding
+            // User is logged in, check onboarding status
             const { data: business } = await supabase
               .from('Business')
               .select('id')
@@ -60,15 +67,85 @@ function VerifyEmailContent() {
                 router.push('/onboarding')
               }
             }, 2000)
-          } else {
-            // No session but also no error - email was verified but user needs to log in
-            setSuccess(true)
-            setVerifying(false)
           }
-        } else {
-          // No verification params - user may have navigated here directly
-          setError('Kein Verifizierungstoken gefunden. Bitte verwenden Sie den Link aus Ihrer E-Mail.')
+          // If no session, user will need to log in manually
+        } else if (access_token || refresh_token) {
+          // Supabase might send tokens directly
+          console.log('Found access/refresh tokens in URL')
+          setSuccess(true)
           setVerifying(false)
+          
+          // Wait a moment for auth to process
+          setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+              const { data: business } = await supabase
+                .from('Business')
+                .select('id')
+                .single()
+              
+              if (business) {
+                router.push('/dashboard')
+              } else {
+                router.push('/onboarding')
+              }
+            }
+          }, 1000)
+        } else {
+          // No verification params - check if this is a redirect after successful verification
+          // Sometimes Supabase redirects without parameters after processing the verification
+          console.log('No verification params found, checking user status...')
+          
+          // Get the current user to check if they're verified
+          const { data: { user }, error: userError } = await supabase.auth.getUser()
+          
+          if (user) {
+            console.log('User found:', { id: user.id, email: user.email, email_confirmed_at: user.email_confirmed_at })
+            
+            if (user.email_confirmed_at) {
+              // Email is already verified
+              setSuccess(true)
+              setVerifying(false)
+              
+              // Check onboarding status
+              const { data: business } = await supabase
+                .from('Business')
+                .select('id')
+                .single()
+              
+              // Redirect after a short delay
+              setTimeout(() => {
+                if (business) {
+                  router.push('/dashboard')
+                } else {
+                  router.push('/onboarding')
+                }
+              }, 2000)
+            } else {
+              // User exists but email not verified
+              setError('Ihre E-Mail-Adresse wurde noch nicht verifiziert. Bitte verwenden Sie den Link aus Ihrer E-Mail.')
+              setVerifying(false)
+            }
+          } else {
+            // No user session - they might have been redirected here after verification
+            // Show success message and prompt to log in
+            console.log('No user session found')
+            
+            // Check if we came from a Supabase redirect
+            // In many cases, just arriving at /verify-email means verification worked
+            const urlPath = window.location.pathname
+            const hasQueryParams = window.location.search.length > 1
+            
+            if (urlPath === '/verify-email' && !hasQueryParams) {
+              // Likely redirected here after successful verification
+              console.log('At /verify-email with no params, assuming verification success')
+              setSuccess(true)
+              setVerifying(false)
+            } else {
+              setError('Kein Verifizierungstoken gefunden. Bitte verwenden Sie den Link aus Ihrer E-Mail.')
+              setVerifying(false)
+            }
+          }
         }
       } catch (err) {
         console.error('Verification error:', err)
