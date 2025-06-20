@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Button } from '@/src/components/ui/button'
 import { Input } from '@/src/components/ui/input'
 import { Label } from '@/src/components/ui/label'
@@ -118,8 +119,13 @@ export default function OnboardingPage() {
   })
 
   // Step 5: Service Information
+  // Create a modified schema that doesn't validate employeeIds as UUIDs during onboarding
+  const onboardingServiceSchema = serviceInfoSchema.omit({ employeeIds: true }).extend({
+    employeeIds: z.array(z.string()).optional(),
+  })
+  
   const serviceForm = useForm({
-    resolver: zodResolver(serviceInfoSchema),
+    resolver: zodResolver(onboardingServiceSchema),
     defaultValues: data.serviceInfo || {
       duration: 30,
       price: 0,
@@ -193,6 +199,7 @@ export default function OnboardingPage() {
         // Moving to the next step
         if (currentStep === 4) {
           // Set employeeIds when entering step 5
+          console.log('Setting employeeIds for step 5:', tempEmployeeIds)
           serviceForm.setValue('employeeIds', tempEmployeeIds)
         }
         setCurrentStep(prev => prev + 1)
@@ -721,7 +728,8 @@ export default function OnboardingPage() {
               </CardHeader>
               <CardContent>
                 {!skipService ? (
-                  <form onSubmit={serviceForm.handleSubmit(async () => {
+                  <form onSubmit={serviceForm.handleSubmit(async (data) => {
+                    console.log('Service form submitted with data:', data)
                     await handleNextStep()
                   })} className="space-y-4">
                     <div>
@@ -828,9 +836,11 @@ export default function OnboardingPage() {
                           type="button"
                           variant="outline"
                           onClick={async () => {
+                            console.log('Skip service button clicked')
                             setSkipService(true)
                             await handleSubmit(undefined)
                           }}
+                          disabled={isSubmitting}
                         >
                           Überspringen
                         </Button>
@@ -849,7 +859,10 @@ export default function OnboardingPage() {
                       <Button variant="outline" onClick={() => setSkipService(false)}>
                         Dienstleistung erstellen
                       </Button>
-                      <Button onClick={() => handleSubmit(undefined)} disabled={isSubmitting}>
+                      <Button onClick={async () => {
+                        console.log('Fertigstellen clicked (service skipped)')
+                        await handleSubmit(undefined)
+                      }} disabled={isSubmitting}>
                         {isSubmitting ? 'Wird erstellt...' : 'Fertigstellen'}
                       </Button>
                     </div>

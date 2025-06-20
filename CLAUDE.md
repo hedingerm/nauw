@@ -442,6 +442,99 @@ When functionality isn't working as expected:
 4. Check network tab for API failures
 5. Remove debug logs after fixing the issue
 6. If issue persists, check for common patterns: async/await usage, state updates, event handler binding
+### Sequential Thinking MCP Usage
+When working with complex problems or multi-step analysis, use the `mcp__sequential-thinking__sequentialthinking` tool to:
+- Break down complex problems into manageable steps
+- Plan and design solutions with room for revision
+- Analyze problems where the full scope isn't clear initially
+- Generate and verify solution hypotheses iteratively
+
+The tool allows dynamic thinking that can branch, revise previous thoughts, and adjust the total number of thoughts needed as understanding deepens. Use it for:
+- Complex debugging scenarios
+- Architecture design decisions
+- Multi-step refactoring plans
+- Problems requiring hypothesis generation and verification
+
+### BrowserTools MCP Usage
+When working with browser-related tasks or debugging, use the BrowserTools MCP tools:
+
+**Available Tools**:
+- **Screenshots**: Capture current page or specific elements
+- **Console Monitoring**: Track console logs and errors
+- **Network Activity**: Monitor XHR requests and responses
+- **DOM Analysis**: Analyze selected elements
+- **Audits**: Run accessibility, performance, SEO, and best practices checks
+
+**Usage Guidelines**:
+1. **For Debugging**:
+   - Use console monitoring to catch runtime errors
+   - Check network tab for failed API calls
+   - Capture screenshots to visualize UI issues
+   
+2. **For Audits**:
+   - Run accessibility audits: "Check accessibility on this page"
+   - Run performance audits: "Why is this page loading slowly?"
+   - Run SEO audits: "How can I improve SEO for this page?"
+   - Run audit mode for comprehensive analysis: "Run audit mode"
+   
+3. **Best Practices**:
+   - Always ensure DevTools panel is open before using
+   - Only one Chrome DevTools instance should be active
+   - Screenshots are stored locally, never sent to external services
+   - Use debugger mode for systematic debugging: "Enter debugger mode"
+
+### Puppeteer MCP Usage
+For browser automation and end-to-end testing, use the Puppeteer MCP tools:
+
+**Available Tools**:
+- `puppeteer_navigate`: Navigate to URLs
+- `puppeteer_screenshot`: Capture screenshots (full page or elements)
+- `puppeteer_click`: Click elements
+- `puppeteer_fill`: Fill input fields
+- `puppeteer_select`: Select dropdown options
+- `puppeteer_hover`: Hover over elements
+- `puppeteer_evaluate`: Execute JavaScript in browser context
+- `puppeteer_connect_active_tab`: Connect to existing Chrome instance
+
+**Usage Guidelines**:
+1. **For Testing Customer Booking Flow**:
+   ```javascript
+   // Navigate to booking page
+   await puppeteer_navigate({ url: "http://localhost:3000/booking/[businessId]" })
+   
+   // Fill form fields
+   await puppeteer_fill({ selector: "#customerName", value: "Test User" })
+   await puppeteer_fill({ selector: "#email", value: "test@example.com" })
+   
+   // Select service and time
+   await puppeteer_click({ selector: "[data-service-id='123']" })
+   await puppeteer_click({ selector: "[data-time-slot='10:00']" })
+   
+   // Submit booking
+   await puppeteer_click({ selector: "#submitBooking" })
+   ```
+
+2. **For Visual Regression Testing**:
+   - Take screenshots before/after changes
+   - Capture specific components: `puppeteer_screenshot({ selector: ".calendar-widget", name: "calendar" })`
+   - Full page captures for responsive testing
+
+3. **For Debugging UI Issues**:
+   - Execute JavaScript to check state: `puppeteer_evaluate({ script: "document.querySelector('.error-message').innerText" })`
+   - Test hover states and interactions
+   - Verify form validations
+
+4. **Active Tab Mode** (for debugging existing sessions):
+   - Launch Chrome with debugging: `chrome.exe --remote-debugging-port=9222`
+   - Connect: `puppeteer_connect_active_tab({ targetUrl: "http://localhost:3000" })`
+   - Useful for debugging authenticated sessions
+
+**Best Practices**:
+- Always wait for elements before interacting
+- Use specific selectors (IDs or data attributes) over generic classes
+- Clean up test data after automation runs
+- For CI/CD, use headless mode with appropriate viewport sizes
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

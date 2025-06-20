@@ -113,6 +113,13 @@ export default function BusinessPortalLayout({
       
       try {
         const businessData = await BusinessService.getCurrentBusiness()
+        
+        // If no business exists, redirect to onboarding
+        if (!businessData && pathname !== '/onboarding') {
+          router.push('/onboarding')
+          return
+        }
+        
         setBusiness(businessData)
         
         // Filter navigation based on business settings
@@ -143,7 +150,7 @@ export default function BusinessPortalLayout({
     }
     
     loadBusiness()
-  }, [user])
+  }, [user, pathname, router])
 
   if (loading) {
     return (
@@ -155,6 +162,15 @@ export default function BusinessPortalLayout({
 
   if (!user) {
     return null
+  }
+
+  // During onboarding, show a simpler layout without sidebar
+  if (pathname === '/onboarding') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {children}
+      </div>
+    )
   }
 
   return (

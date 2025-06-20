@@ -24,7 +24,9 @@ export class CustomerService {
     return createClient()
   }
 
-  static async findByEmail(email: string, businessId: string): Promise<Customer | null> {
+  static async findByEmail(email: string | null | undefined, businessId: string): Promise<Customer | null> {
+    if (!email) return null
+    
     const supabase = await this.getClient()
     
     const normalizedEmail = normalizeEmail(email)
@@ -101,13 +103,15 @@ export class CustomerService {
     const validatedData = createCustomerSchema.parse(data)
     
     // Normalize email and phone
-    const normalizedEmail = normalizeEmail(validatedData.email)
+    const normalizedEmail = validatedData.email ? normalizeEmail(validatedData.email) : null
     const normalizedPhone = normalizePhone(validatedData.phone)
     
-    // Check if customer with same email already exists for this business
-    const existingByEmail = await this.findByEmail(normalizedEmail, businessId)
-    if (existingByEmail) {
-      throw new Error('Ein Kunde mit dieser E-Mail-Adresse existiert bereits')
+    // Check if customer with same email already exists for this business (only if email provided)
+    if (normalizedEmail) {
+      const existingByEmail = await this.findByEmail(normalizedEmail, businessId)
+      if (existingByEmail) {
+        throw new Error('Ein Kunde mit dieser E-Mail-Adresse existiert bereits')
+      }
     }
     
     // Check if customer with same phone exists (if phone provided)
@@ -125,13 +129,21 @@ export class CustomerService {
         ...validatedData,
         email: normalizedEmail,
         phone: normalizedPhone,
+        isActive: true,  // Explicitly set isActive to true for new customers
       })
       .select()
       .single()
 
     if (error) {
       console.error('Error creating customer:', error)
-      throw new Error('Fehler beim Erstellen des Kunden')
+      console.error('Customer insert data:', {
+        businessId,
+        ...validatedData,
+        email: normalizedEmail,
+        phone: normalizedPhone,
+        isActive: true,
+      })
+      throw new Error(error.message || 'Fehler beim Erstellen des Kunden')
     }
 
     return customer
@@ -335,15 +347,18 @@ export class CustomerService {
     })
   }
 
-  static async getOrCreate(businessId: string, data: Partial<CreateCustomerInput> & { name: string; email: string }): Promise<Customer> {
+  static async getOrCreate(businessId: string, data: Partial<CreateCustomerInput> & { name: string }): Promise<Customer> {
     const supabase = await this.getClient()
     
     // Normalize email and phone for searching
-    const normalizedEmail = normalizeEmail(data.email)
+    const normalizedEmail = data.email ? normalizeEmail(data.email) : null
     const normalizedPhone = normalizePhone(data.phone)
     
-    // First try to find existing customer by email
-    let existingCustomer = await this.findByEmail(normalizedEmail, businessId)
+    // First try to find existing customer by email (if provided)
+    let existingCustomer: Customer | null = null
+    if (normalizedEmail) {
+      existingCustomer = await this.findByEmail(normalizedEmail, businessId)
+    }
     
     // If not found by email but phone is provided, try to find by phone
     if (!existingCustomer && normalizedPhone) {
@@ -352,8 +367,8 @@ export class CustomerService {
       // If found by phone, update the email if different
       if (existingCustomer) {
         const updates: UpdateCustomerInput = {}
-        if (normalizeEmail(existingCustomer.email) !== normalizedEmail) {
-          updates.email = normalizedEmail
+        if (existingCustomer.email && normalizedEmail && normalizeEmail(existingCustomer.email) !== normalizedEmail) {
+          updates.email = normalizedEmail || undefined
         }
         if (data.name !== existingCustomer.name) {
           updates.name = data.name
@@ -385,20 +400,25 @@ export class CustomerService {
     }
     
     // Create new customer with defaults for missing fields
+    // For getOrCreate, if phone is not provided, we cannot create a new customer
+    if (!data.phone) {
+      throw new Error('Telefonnummer ist erforderlich für neue Kunden')
+    }
+    
     const customerData: CreateCustomerInput = {
       name: data.name,
-      email: data.email,
+      email: data.email || undefined,
       phone: data.phone,
-      notes: data.notes,
-      address: data.address,
-      city: data.city,
-      postalCode: data.postalCode,
-      birthday: data.birthday,
-      gender: data.gender,
+      notes: data.notes || undefined,
+      address: data.address || undefined,
+      city: data.city || undefined,
+      postalCode: data.postalCode || undefined,
+      birthday: data.birthday || undefined,
+      gender: data.gender || undefined,
       preferredContactMethod: data.preferredContactMethod || 'email',
       marketingConsent: data.marketingConsent || false,
-      source: data.source,
-      tags: data.tags,
+      source: data.source || undefined,
+      tags: data.tags || undefined,
       vipStatus: data.vipStatus || false,
     }
     

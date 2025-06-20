@@ -46,7 +46,9 @@
       "mcp__github__push_files",
       "mcp__github__create_or_update_file",
       "mcp__github__get_me",
-      "mcp__github__search_repositories"
+      "mcp__github__search_repositories",
+      "mcp__github__list_issues",
+      "mcp__puppeteer__puppeteer_navigate"
     ]
   },
   "enableAllProjectMcpServers": false

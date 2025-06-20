@@ -40,8 +40,8 @@ export const createAppointmentSchema = appointmentBaseSchema.extend({
   customerId: uuidSchema.optional(),
   customerData: z.object({
     name: nameSchema,
-    email: emailSchema,
-    phone: swissPhoneSchema.optional(),
+    email: z.union([emailSchema, z.literal('').transform(() => undefined)]).optional(),
+    phone: swissPhoneSchema,
   }).optional(),
   status: appointmentStatusEnum.default('confirmed'),
   cancellationReason: cancellationReasonSchema,

@@ -178,7 +178,12 @@ export function AppointmentCreateDialog({
   }
 
   const handleNewCustomer = (customerData: any) => {
-    setSelectedCustomer(null)
+    // Show the new customer as if already selected
+    setSelectedCustomer({
+      ...customerData,
+      id: 'new', // Temporary ID to indicate this is a new customer
+      isNew: true, // Flag to identify this is pending creation
+    })
     form.setValue('customerId', undefined)
     form.setValue('customerData', customerData)
   }
@@ -318,18 +323,13 @@ export function AppointmentCreateDialog({
 
             {/* Customer Selection */}
             <div className="space-y-2">
-              <FormLabel>Kunde</FormLabel>
+              <FormLabel>Kunde *</FormLabel>
               <CustomerSearch
                 businessId={businessId}
                 onSelectCustomer={handleCustomerSelect}
                 onNewCustomer={handleNewCustomer}
                 selectedCustomer={selectedCustomer}
               />
-              {form.watch('customerData') && !selectedCustomer && (
-                <p className="text-sm text-muted-foreground">
-                  Neuer Kunde wird angelegt: {form.watch('customerData')?.name}
-                </p>
-              )}
             </div>
 
             {/* Notes */}
@@ -360,7 +360,10 @@ export function AppointmentCreateDialog({
               >
                 Abbrechen
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button 
+                type="submit" 
+                disabled={loading}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Termin erstellen
               </Button>

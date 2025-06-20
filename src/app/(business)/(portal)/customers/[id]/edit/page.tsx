@@ -102,7 +102,7 @@ export default function EditCustomerPage({ params: paramsPromise }: EditCustomer
       
       reset({
         name: customerData.name,
-        email: customerData.email,
+        email: customerData.email || undefined,
         phone: customerData.phone || undefined,
         notes: customerData.notes || undefined,
         address: customerData.address || undefined,

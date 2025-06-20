@@ -21,21 +21,24 @@ const sourceSchema = z.string()
   .transform(sanitizeInput)
   .optional()
 
+// Helper to make empty strings undefined
+const emptyStringToUndefined = z.literal('').transform(() => undefined)
+
 // Create customer schema
 export const createCustomerSchema = z.object({
   name: nameSchema,
-  email: emailSchema,
-  phone: swissPhoneSchema.optional(),
-  notes: notesSchema,
-  address: addressSchema.optional(),
-  city: citySchema.optional(),
-  postalCode: swissPostalCodeSchema.optional(),
-  birthday: pastDateSchema.optional(),
+  email: z.union([emailSchema, emptyStringToUndefined]).optional(),
+  phone: swissPhoneSchema,
+  notes: z.union([notesSchema, emptyStringToUndefined]).optional(),
+  address: z.union([addressSchema, emptyStringToUndefined]).optional(),
+  city: z.union([citySchema, emptyStringToUndefined]).optional(),
+  postalCode: z.union([swissPostalCodeSchema, emptyStringToUndefined]).optional(),
+  birthday: z.union([pastDateSchema, emptyStringToUndefined]).optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
   preferredContactMethod: z.enum(['email', 'phone', 'sms']).optional(),
   marketingConsent: z.boolean().optional(),
-  source: sourceSchema,
-  tags: tagsArraySchema,
+  source: z.union([sourceSchema, emptyStringToUndefined]).optional(),
+  tags: tagsArraySchema.optional(),
   vipStatus: z.boolean().optional(),
 })
 
@@ -85,7 +88,7 @@ export type CustomerWithRelations = {
   id: string
   businessId: string
   name: string
-  email: string
+  email: string | null
   phone: string | null
   notes: string | null
   isActive: boolean
@@ -111,7 +114,7 @@ export type CustomerWithRelations = {
 export type CustomerLookupResult = {
   id: string
   name: string
-  email: string
+  email: string | null
   phone: string | null
   lastVisit?: string | null
   visitCount?: number

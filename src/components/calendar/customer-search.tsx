@@ -40,7 +40,7 @@ export function CustomerSearch({
     setValue,
     getValues,
     trigger,
-  } = useForm({
+  } = useForm<CreateCustomerInput>({
     resolver: zodResolver(createCustomerSchema),
     defaultValues: {
       name: '',
@@ -121,8 +121,17 @@ export function CustomerSearch({
               <User className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium">{selectedCustomer.name}</p>
-              <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
+              <p className="font-medium">
+                {selectedCustomer.name}
+                {selectedCustomer.isNew && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                    Neu
+                  </span>
+                )}
+              </p>
+              {selectedCustomer.email && (
+                <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
+              )}
               {selectedCustomer.phone && (
                 <p className="text-sm text-muted-foreground">
                   {formatPhoneForDisplay(selectedCustomer.phone) || selectedCustomer.phone}
@@ -178,10 +187,12 @@ export function CustomerSearch({
                     <div className="flex-1">
                       <p className="font-medium">{customer.name}</p>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {customer.email}
-                        </span>
+                        {customer.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {customer.email}
+                          </span>
+                        )}
                         {customer.phone && (
                           <span className="flex items-center gap-1">
                             <Phone className="h-3 w-3" />
@@ -243,7 +254,7 @@ export function CustomerSearch({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-Mail</Label>
+              <Label htmlFor="email">E-Mail (optional)</Label>
               <Input
                 id="email"
                 type="email"
@@ -256,7 +267,7 @@ export function CustomerSearch({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefon (optional)</Label>
+              <Label htmlFor="phone">Telefon</Label>
               <Input
                 id="phone"
                 type="tel"

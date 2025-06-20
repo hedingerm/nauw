@@ -112,7 +112,7 @@ export default function NewCustomerPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">E-Mail *</Label>
+                <Label htmlFor="email">E-Mail</Label>
                 <Input
                   id="email"
                   type="email"
@@ -125,7 +125,7 @@ export default function NewCustomerPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefon</Label>
+                <Label htmlFor="phone">Telefon *</Label>
                 <Input
                   id="phone"
                   type="tel"

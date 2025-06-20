@@ -206,7 +206,7 @@ export type Database = {
           businessId: string
           city: string | null
           createdAt: string
-          email: string
+          email: string | null
           gender: string | null
           id: string
           isActive: boolean
@@ -228,7 +228,7 @@ export type Database = {
           businessId: string
           city?: string | null
           createdAt?: string
-          email: string
+          email?: string | null
           gender?: string | null
           id?: string
           isActive?: boolean
@@ -250,7 +250,7 @@ export type Database = {
           businessId?: string
           city?: string | null
           createdAt?: string
-          email?: string
+          email?: string | null
           gender?: string | null
           id?: string
           isActive?: boolean
