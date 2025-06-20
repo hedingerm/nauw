@@ -1,13 +1,30 @@
 import { z } from 'zod'
+import {
+  shortDescriptionSchema,
+  durationSchema,
+  priceSchema,
+  bufferSchema,
+  uuidSchema,
+  LIMITS
+} from './validation-rules'
+
+// Service name validation
+const serviceNameSchema = z.string()
+  .trim()
+  .min(2, 'Mindestens 2 Zeichen erforderlich')
+  .max(LIMITS.SERVICE_NAME_MAX, `Maximal ${LIMITS.SERVICE_NAME_MAX} Zeichen erlaubt`)
+  .regex(/^[a-zA-Z0-9äöüÄÖÜàâéèêëïîôùûçÀÂÉÈÊËÏÎÔÙÛÇ\s\-'&.,()]+$/, 'Ungültige Zeichen im Servicenamen')
+  .refine(val => !val.includes('  '), 'Keine doppelten Leerzeichen erlaubt')
 
 export const createServiceSchema = z.object({
-  name: z.string().min(1, 'Name ist erforderlich'),
-  description: z.string().optional(),
-  duration: z.number().min(5, 'Dauer muss mindestens 5 Minuten betragen'),
-  price: z.number().min(0, 'Preis kann nicht negativ sein'),
-  bufferBefore: z.number().min(0),
-  bufferAfter: z.number().min(0),
-  categoryId: z.string().optional(),
+  name: serviceNameSchema,
+  description: shortDescriptionSchema,
+  duration: durationSchema,
+  price: priceSchema,
+  bufferBefore: bufferSchema.default(0),
+  bufferAfter: bufferSchema.default(0),
+  categoryId: uuidSchema.optional(),
+  isActive: z.boolean().default(true),
 })
 
 export const updateServiceSchema = createServiceSchema.partial()

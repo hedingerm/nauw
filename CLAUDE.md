@@ -84,14 +84,44 @@ Before implementing any database operations:
 1. **Always verify actual schema first** using Supabase MCP tools:
    - Use `mcp__MCP_SUPABASE__execute_sql` to check table structure
    - Use `mcp__MCP_SUPABASE__list_tables` to verify columns
+   - Check RLS policies with: `SELECT * FROM pg_policies WHERE tablename = 'YourTable'`
    - Never assume types - numeric fields might be `number` not `string`
 2. **When encountering database errors**:
    - Empty error objects often indicate schema mismatches
    - Log full error details: `console.error('Database error:', error)`
    - Check nullable constraints match between database and types
+   - For RLS errors, verify policies for the current auth context
 3. **After any schema changes**:
    - Run `mcp__MCP_SUPABASE__generate_typescript_types`
    - Update database.types.ts immediately
+   - Test with both authenticated and anonymous access if applicable
+
+### Security-First Development
+- Always implement Row Level Security (RLS) when working with databases
+- Start with the most restrictive policies and only add permissions as needed
+- Distinguish between authenticated user access and public access requirements
+- When implementing public features (like booking pages):
+  - Clearly separate public read-only policies from authenticated write policies
+  - Document which tables need public access and why
+  - Test policies with both authenticated and anonymous roles
+
+### Public Access Implementation
+When implementing public-facing features (e.g., booking pages):
+1. **Identify Required Public Access**:
+   - List all tables that need public read access
+   - Determine if public users need to create records (e.g., customers, appointments)
+   - Document the business logic for status fields (e.g., appointment status based on business settings)
+
+2. **Implement Layered Policies**:
+   - Public SELECT policies for viewing data
+   - Public INSERT policies for creating records (with appropriate restrictions)
+   - Authenticated policies for management operations
+   - Test each layer independently
+
+3. **Handle Mixed Access in Services**:
+   - Be aware that `.select()` after `.insert()` requires both INSERT and SELECT policies
+   - Consider whether anonymous users need to see the data they just created
+   - Add time-limited SELECT policies if needed (e.g., view appointments created in last 5 minutes)
 
 ### Validation Architecture
 - Always define Zod schemas for any data structure
@@ -188,6 +218,12 @@ When working with the database, prefer using Supabase MCP tools:
 2. **When encountering type errors** - check actual column types
 3. **After database errors** - use execute_sql to debug
 4. **For all schema changes** - use apply_migration, never manual SQL
+5. **For RLS policy changes** - always use apply_migration with descriptive names
+
+**Migration Naming Convention**:
+- Use descriptive names: `add_user_id_to_business`, `fix_public_appointment_creation_policy`
+- Include the action and target: `[action]_[target]_[specifics]`
+- For fixes, start with `fix_`: `fix_appointment_policies_for_public`
 
 Example debugging workflow:
 ```sql
@@ -384,6 +420,17 @@ The user will primarily request you perform software engineering tasks. This inc
   3. `npm run dev` briefly to verify no runtime errors
   - If any command fails, fix the issues before considering the task complete
   - These commands have caught critical issues in this project including import errors and type mismatches
+- **Test Database Operations**:
+  - For any RLS policy changes, test with relevant roles:
+    ```sql
+    SET LOCAL role TO 'anon';  -- Test as anonymous
+    -- Run your query
+    
+    SET LOCAL role TO 'authenticated';  -- Test as authenticated
+    -- Run your query
+    ```
+  - Verify foreign key constraints are satisfied
+  - Check that error messages are properly localized
 - VERY IMPORTANT: When you have completed a task, you MUST run the lint and typecheck commands (eg. npm run lint, npm run typecheck, ruff, etc.) with Bash if they were provided to you to ensure your code is correct. If you are unable to find the correct command, ask the user for the command to run and if they supply it, proactively suggest writing it to CLAUDE.md so that you will know to run it next time.
 NEVER commit changes unless the user explicitly asks you to. It is VERY IMPORTANT to only commit when explicitly asked, otherwise the user will feel that you are being too proactive.
 

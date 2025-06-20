@@ -1,24 +1,59 @@
 import { z } from 'zod'
+import {
+  businessNameSchema,
+  emailSchema,
+  swissPhoneSchema,
+  addressSchema,
+  citySchema,
+  swissPostalCodeSchema,
+  timeStringSchema,
+  descriptionSchema,
+  LIMITS
+} from './validation-rules'
+
+// Business hours validation with time format
+const dayHoursSchema = z.object({
+  open: timeStringSchema,
+  close: timeStringSchema,
+}).refine(
+  (data) => {
+    const open = parseInt(data.open.replace(':', ''))
+    const close = parseInt(data.close.replace(':', ''))
+    return open < close
+  },
+  { message: 'Öffnungszeit muss vor Schließzeit liegen' }
+)
 
 export const businessHoursSchema = z.object({
-  monday: z.object({ open: z.string(), close: z.string() }).optional(),
-  tuesday: z.object({ open: z.string(), close: z.string() }).optional(),
-  wednesday: z.object({ open: z.string(), close: z.string() }).optional(),
-  thursday: z.object({ open: z.string(), close: z.string() }).optional(),
-  friday: z.object({ open: z.string(), close: z.string() }).optional(),
-  saturday: z.object({ open: z.string(), close: z.string() }).optional(),
-  sunday: z.object({ open: z.string(), close: z.string() }).optional(),
+  monday: dayHoursSchema.optional(),
+  tuesday: dayHoursSchema.optional(),
+  wednesday: dayHoursSchema.optional(),
+  thursday: dayHoursSchema.optional(),
+  friday: dayHoursSchema.optional(),
+  saturday: dayHoursSchema.optional(),
+  sunday: dayHoursSchema.optional(),
 })
 
+// Business type validation
+const businessTypeSchema = z.string()
+  .min(1, 'Geschäftstyp ist erforderlich')
+  .max(50, 'Maximal 50 Zeichen erlaubt')
+  .regex(/^[a-zA-Z0-9äöüÄÖÜ\s\-&]+$/, 'Ungültige Zeichen im Geschäftstyp')
+
 export const createBusinessSchema = z.object({
-  name: z.string().min(1, 'Name ist erforderlich'),
-  email: z.string().email('Ungültige E-Mail-Adresse'),
-  phone: z.string().min(1, 'Telefonnummer ist erforderlich'),
-  address: z.string().min(1, 'Adresse ist erforderlich'),
-  city: z.string().min(1, 'Stadt ist erforderlich'),
-  postalCode: z.string().regex(/^\d{4}$/, 'Postleitzahl muss 4 Ziffern haben'),
-  country: z.string().min(1, 'Land ist erforderlich'),
+  name: businessNameSchema,
+  email: emailSchema,
+  phone: swissPhoneSchema,
+  address: addressSchema,
+  city: citySchema,
+  postalCode: swissPostalCodeSchema,
+  country: z.string()
+    .min(1, 'Land ist erforderlich')
+    .max(50, 'Maximal 50 Zeichen erlaubt')
+    .default('Schweiz'),
   businessHours: businessHoursSchema,
+  type: businessTypeSchema,
+  description: descriptionSchema,
 })
 
 export const updateBusinessSchema = createBusinessSchema.partial().extend({
