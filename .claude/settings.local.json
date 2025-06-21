@@ -55,7 +55,10 @@
       "Bash(bash:*)",
       "WebFetch(domain:resend.com)",
       "Bash(npx supabase functions deploy:*)",
-      "mcp__MCP_SUPABASE__get_logs"
+      "mcp__MCP_SUPABASE__get_logs",
+      "WebFetch(domain:dev.to)",
+      "Bash(timeout 15 npm run dev)",
+      "WebFetch(domain:vercel.com)"
     ]
   },
   "enableAllProjectMcpServers": false

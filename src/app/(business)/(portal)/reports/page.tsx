@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src
 import { Button } from '@/src/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs'
 import { Badge } from '@/src/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select'
 import { BusinessService } from '@/src/lib/services/business.service'
 import { AppointmentService } from '@/src/lib/services/appointment.service'
+import { ReportService } from '@/src/lib/services/report.service'
 import { useAuth } from '@/src/lib/auth/context'
 import { 
   TrendingUp, 
@@ -23,51 +25,25 @@ import {
 import { toast } from 'sonner'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { de } from 'date-fns/locale'
+import { SimpleBarChart } from '@/src/components/ui/simple-chart'
 
-interface RevenueData {
-  todayRevenue: number
-  yesterdayRevenue: number
-  weekRevenue: number
-  lastWeekRevenue: number
-  monthRevenue: number
-  lastMonthRevenue: number
-  yearRevenue: number
-  averageBookingValue: number
-}
-
-interface AppointmentStats {
-  totalAppointments: number
-  completedAppointments: number
-  cancelledAppointments: number
-  noShowAppointments: number
-  averageDuration: number
-  busiestDay: string
-  busiestHour: number
-}
-
-interface ServiceStats {
-  serviceId: string
-  serviceName: string
-  bookingCount: number
-  totalRevenue: number
-  averagePrice: number
-}
-
-interface EmployeeStats {
-  employeeId: string
-  employeeName: string
-  appointmentCount: number
-  totalRevenue: number
-  utilizationRate: number
-}
+import type { 
+  RevenueComparison,
+  ServiceStatistics,
+  EmployeeStatistics,
+  CustomerStatistics,
+  TimeAnalytics
+} from '@/src/lib/services/report.service'
 
 export default function ReportsPage() {
   const { user } = useAuth()
   const [business, setBusiness] = useState<any>(null)
-  const [revenueData, setRevenueData] = useState<RevenueData | null>(null)
-  const [appointmentStats, setAppointmentStats] = useState<AppointmentStats | null>(null)
-  const [serviceStats, setServiceStats] = useState<ServiceStats[]>([])
-  const [employeeStats, setEmployeeStats] = useState<EmployeeStats[]>([])
+  const [revenueData, setRevenueData] = useState<RevenueComparison | null>(null)
+  const [appointmentStats, setAppointmentStats] = useState<any>(null)
+  const [serviceStats, setServiceStats] = useState<ServiceStatistics[]>([])
+  const [employeeStats, setEmployeeStats] = useState<EmployeeStatistics[]>([])
+  const [customerStats, setCustomerStats] = useState<CustomerStatistics | null>(null)
+  const [timeAnalytics, setTimeAnalytics] = useState<TimeAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month')
 
@@ -85,78 +61,49 @@ export default function ReportsPage() {
       if (businessData) {
         setBusiness(businessData)
         
+        // Calculate date ranges based on selected period
+        const now = new Date()
+        let startDate: Date
+        let endDate = new Date()
+        
+        switch (selectedPeriod) {
+          case 'week':
+            startDate = startOfWeek(now, { weekStartsOn: 1 })
+            endDate = endOfWeek(now, { weekStartsOn: 1 })
+            break
+          case 'month':
+            startDate = startOfMonth(now)
+            endDate = endOfMonth(now)
+            break
+          case 'year':
+            startDate = new Date(now.getFullYear(), 0, 1)
+            endDate = new Date(now.getFullYear(), 11, 31)
+            break
+        }
+        
         // Load all report data in parallel
-        const [revenue, appointments] = await Promise.all([
-          AppointmentService.getRevenueStats(businessData.id),
+        const [
+          revenue,
+          appointments,
+          services,
+          employees,
+          customers,
+          time
+        ] = await Promise.all([
+          ReportService.getRevenueComparison(businessData.id),
           AppointmentService.getAppointmentStats(businessData.id, selectedPeriod),
+          ReportService.getServiceStatistics(businessData.id, startDate, endDate),
+          ReportService.getEmployeeStatistics(businessData.id, startDate, endDate),
+          ReportService.getCustomerStatistics(businessData.id, startDate, endDate),
+          ReportService.getTimeAnalytics(businessData.id, startDate, endDate)
         ])
         
-        // For now, we'll use the existing revenue stats
-        // In a real implementation, we'd expand these services
-        setRevenueData({
-          todayRevenue: revenue.todayRevenue || 0,
-          yesterdayRevenue: 0, // TODO: Implement
-          weekRevenue: revenue.weekRevenue || 0,
-          lastWeekRevenue: 0, // TODO: Implement
-          monthRevenue: revenue.monthRevenue || 0,
-          lastMonthRevenue: 0, // TODO: Implement
-          yearRevenue: 0, // TODO: Implement
-          averageBookingValue: revenue.averageBookingValue || 0,
-        })
-        
-        // Mock data for demonstration - replace with actual service calls
-        setAppointmentStats({
-          totalAppointments: appointments.total || 0,
-          completedAppointments: appointments.completed || 0,
-          cancelledAppointments: appointments.cancelled || 0,
-          noShowAppointments: 0,
-          averageDuration: 60,
-          busiestDay: 'Mittwoch',
-          busiestHour: 14,
-        })
-        
-        // Mock service stats
-        setServiceStats([
-          {
-            serviceId: '1',
-            serviceName: 'Haarschnitt',
-            bookingCount: 45,
-            totalRevenue: 2250,
-            averagePrice: 50,
-          },
-          {
-            serviceId: '2',
-            serviceName: 'Färben',
-            bookingCount: 23,
-            totalRevenue: 2760,
-            averagePrice: 120,
-          },
-          {
-            serviceId: '3',
-            serviceName: 'Styling',
-            bookingCount: 18,
-            totalRevenue: 540,
-            averagePrice: 30,
-          },
-        ])
-        
-        // Mock employee stats
-        setEmployeeStats([
-          {
-            employeeId: '1',
-            employeeName: 'Anna Schmidt',
-            appointmentCount: 42,
-            totalRevenue: 2940,
-            utilizationRate: 75,
-          },
-          {
-            employeeId: '2',
-            employeeName: 'Max Müller',
-            appointmentCount: 38,
-            totalRevenue: 2610,
-            utilizationRate: 68,
-          },
-        ])
+        setRevenueData(revenue)
+        setAppointmentStats(appointments)
+        setServiceStats(services)
+        setEmployeeStats(employees)
+        setCustomerStats(customers)
+        setTimeAnalytics(time)
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -169,6 +116,53 @@ export default function ReportsPage() {
   const calculateTrend = (current: number, previous: number): number => {
     if (previous === 0) return current > 0 ? 100 : 0
     return Math.round(((current - previous) / previous) * 100)
+  }
+
+  const handleExport = async () => {
+    if (!business) return
+
+    try {
+      // Calculate date range for export
+      const now = new Date()
+      let startDate: Date
+      let endDate = new Date()
+      
+      switch (selectedPeriod) {
+        case 'week':
+          startDate = startOfWeek(now, { weekStartsOn: 1 })
+          endDate = endOfWeek(now, { weekStartsOn: 1 })
+          break
+        case 'month':
+          startDate = startOfMonth(now)
+          endDate = endOfMonth(now)
+          break
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1)
+          endDate = new Date(now.getFullYear(), 11, 31)
+          break
+      }
+
+      // Get CSV data
+      const csv = await ReportService.exportAppointmentsCSV(business.id, startDate, endDate)
+      
+      // Create blob and download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      
+      link.setAttribute('href', url)
+      link.setAttribute('download', `termine_${format(startDate, 'yyyy-MM-dd')}_${format(endDate, 'yyyy-MM-dd')}.csv`)
+      link.style.visibility = 'hidden'
+      
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast.success('Export erfolgreich!')
+    } catch (error) {
+      console.error('Export error:', error)
+      toast.error('Fehler beim Exportieren der Daten')
+    }
   }
 
   if (loading) {
@@ -202,11 +196,17 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm">
+          <Select value={selectedPeriod} onValueChange={(value: 'week' | 'month' | 'year') => setSelectedPeriod(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Zeitraum wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Diese Woche</SelectItem>
+              <SelectItem value="month">Diesen Monat</SelectItem>
+              <SelectItem value="year">Dieses Jahr</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -282,6 +282,27 @@ export default function ReportsPage() {
         </Card>
       </div>
 
+      {/* Revenue Trend Chart */}
+      {revenueData && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Umsatztrend</CardTitle>
+            <CardDescription>Vergleich zum Vorperiode</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SimpleBarChart
+              data={[
+                { label: 'Heute', value: revenueData.todayRevenue },
+                { label: 'Gestern', value: revenueData.yesterdayRevenue },
+                { label: 'Diese Woche', value: revenueData.weekRevenue },
+                { label: 'Letzte Woche', value: revenueData.lastWeekRevenue },
+              ]}
+              height={180}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Detailed Reports Tabs */}
       <Tabs defaultValue="appointments" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
@@ -341,7 +362,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Ø Dauer</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{appointmentStats?.averageDuration || 0}</div>
+                <div className="text-2xl font-bold">{timeAnalytics?.averageDuration || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">Minuten pro Termin</p>
               </CardContent>
             </Card>
@@ -353,8 +374,33 @@ export default function ReportsPage() {
               <CardDescription>Verteilung der Termine über die Woche</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Diagramm kommt bald...</p>
+              <div className="space-y-3">
+                {timeAnalytics?.busiestDays.slice(0, 7).map((day) => (
+                  <div key={day.dayOfWeek} className="flex items-center justify-between">
+                    <span className="text-sm font-medium w-24">{day.dayName}</span>
+                    <div className="flex-1 mx-4">
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ 
+                            width: `${timeAnalytics.busiestDays[0].appointmentCount > 0 
+                              ? (day.appointmentCount / timeAnalytics.busiestDays[0].appointmentCount) * 100 
+                              : 0}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-sm text-muted-foreground w-12 text-right">
+                      {day.appointmentCount}
+                    </span>
+                  </div>
+                ))}
+                {timeAnalytics && timeAnalytics.busiestDays.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Beliebtester Tag: {timeAnalytics.busiestDays[0].dayName} 
+                    ({timeAnalytics.busiestDays[0].appointmentCount} Termine)
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -437,8 +483,8 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Neue Kunden</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground mt-1">diesen Monat</p>
+                <div className="text-2xl font-bold">{customerStats?.newCustomers || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">in diesem Zeitraum</p>
               </CardContent>
             </Card>
 
@@ -447,7 +493,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Wiederkehrende</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">68%</div>
+                <div className="text-2xl font-bold">{customerStats?.retentionRate || 0}%</div>
                 <p className="text-xs text-muted-foreground mt-1">Kundenbindungsrate</p>
               </CardContent>
             </Card>
@@ -457,11 +503,43 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Ø Buchungswert</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">CHF {revenueData.averageBookingValue}</div>
-                <p className="text-xs text-muted-foreground mt-1">pro Kunde</p>
+                <div className="text-2xl font-bold">CHF {customerStats?.averageBookingValue || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">pro Buchung</p>
               </CardContent>
             </Card>
           </div>
+
+          {/* Top Customers */}
+          {customerStats && customerStats.topCustomers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Kunden</CardTitle>
+                <CardDescription>Ihre umsatzstärksten Kunden</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {customerStats.topCustomers.slice(0, 5).map((customer, index) => (
+                    <div key={customer.customerId} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                          <span className="text-sm font-medium">{index + 1}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{customer.customerName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {customer.appointmentCount} Termine
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">CHF {customer.totalSpent}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

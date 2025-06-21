@@ -4,6 +4,8 @@ import './globals.css'
 import { Providers } from '@/src/lib/providers'
 import { StructuredDataScript } from '@/src/components/seo/structured-data-script'
 import { organizationSchema, softwareApplicationSchema } from '@/src/lib/seo/structured-data'
+import { CookieConsentBanner } from '@/src/components/features/cookie-consent'
+import { AnalyticsWrapper } from '@/src/components/features/analytics-wrapper'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -73,6 +75,8 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>{children}</Providers>
         <StructuredDataScript data={[organizationSchema, softwareApplicationSchema]} />
+        <AnalyticsWrapper />
+        <CookieConsentBanner />
       </body>
     </html>
   )

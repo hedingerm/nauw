@@ -9,7 +9,6 @@ import {
   swissPostalCodeSchema,
   pastDateSchema,
   tagsArraySchema,
-  hexColorSchema,
   LIMITS,
   sanitizeInput
 } from './validation-rules'
@@ -137,21 +136,8 @@ export type CustomerNote = {
   }
 }
 
-// Customer group type
-export type CustomerGroup = {
-  id: string
-  businessId: string
-  name: string
-  description: string | null
-  color: string
-  createdAt: string | null
-  updatedAt: string | null
-  memberCount?: number
-}
-
 // Customer details (for CRM view)
 export type CustomerDetails = CustomerWithRelations & {
-  groups?: CustomerGroup[]
   notes?: CustomerNote[]
   upcomingAppointments?: {
     id: string
@@ -181,35 +167,6 @@ export const updateCustomerNoteSchema = z.object({
   isPrivate: z.boolean().optional(),
 })
 
-// Customer group schemas
-export const createCustomerGroupSchema = z.object({
-  name: z.string()
-    .trim()
-    .min(1, 'Gruppenname ist erforderlich')
-    .max(LIMITS.CATEGORY_NAME_MAX, `Maximal ${LIMITS.CATEGORY_NAME_MAX} Zeichen erlaubt`)
-    .regex(/^[a-zA-Z0-9äöüÄÖÜ\s\-]+$/, 'Ungültige Zeichen im Gruppennamen'),
-  description: z.string()
-    .max(LIMITS.SHORT_DESCRIPTION_MAX, `Maximal ${LIMITS.SHORT_DESCRIPTION_MAX} Zeichen erlaubt`)
-    .transform(sanitizeInput)
-    .optional(),
-  color: hexColorSchema.default('#6366f1'),
-})
-
-export const updateCustomerGroupSchema = z.object({
-  name: z.string()
-    .trim()
-    .min(1, 'Gruppenname ist erforderlich')
-    .max(LIMITS.CATEGORY_NAME_MAX, `Maximal ${LIMITS.CATEGORY_NAME_MAX} Zeichen erlaubt`)
-    .regex(/^[a-zA-Z0-9äöüÄÖÜ\s\-]+$/, 'Ungültige Zeichen im Gruppennamen')
-    .optional(),
-  description: z.string()
-    .max(LIMITS.SHORT_DESCRIPTION_MAX, `Maximal ${LIMITS.SHORT_DESCRIPTION_MAX} Zeichen erlaubt`)
-    .transform(sanitizeInput)
-    .optional()
-    .nullable(),
-  color: hexColorSchema.optional(),
-})
-
 // Type exports
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>
@@ -217,5 +174,3 @@ export type SearchCustomersInput = z.infer<typeof searchCustomersSchema>
 export type FilterCustomersInput = z.infer<typeof filterCustomersSchema>
 export type CreateCustomerNoteInput = z.infer<typeof createCustomerNoteSchema>
 export type UpdateCustomerNoteInput = z.infer<typeof updateCustomerNoteSchema>
-export type CreateCustomerGroupInput = z.infer<typeof createCustomerGroupSchema>
-export type UpdateCustomerGroupInput = z.infer<typeof updateCustomerGroupSchema>
