@@ -4,7 +4,7 @@ import type Stripe from 'stripe'
 import { stripe, webhookSecret } from '@/src/lib/stripe/config'
 import { SubscriptionService } from '@/src/lib/services/subscription-service'
 import { BillingService } from '@/src/lib/services/billing-service'
-import { createAdminClient } from '@/src/lib/supabase/server'
+import { createServiceRoleClient } from '@/src/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Initialize Supabase admin client with service role for admin operations
-  const supabase = await createAdminClient()
+  // Initialize Supabase service role client for webhook operations
+  const supabase = createServiceRoleClient()
 
   console.log('Webhook received:', {
     type: event.type,
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
 // Handle subscription create/update
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
-  const supabase = await createAdminClient()
+  const supabase = createServiceRoleClient()
   
   // Find business by Stripe customer ID
   let { data: business, error: businessError } = await supabase
@@ -217,7 +217,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
 // Handle subscription deletion/cancellation
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const supabase = await createAdminClient()
+  const supabase = createServiceRoleClient()
   
   await supabase
     .from('Subscription')
@@ -230,7 +230,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 // Handle successful invoice payment
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
-  const supabase = await createAdminClient()
+  const supabase = createServiceRoleClient()
   
   // Find business
   const { data: business } = await supabase
@@ -304,7 +304,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 
 // Handle failed invoice payment
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  const supabase = await createAdminClient()
+  const supabase = createServiceRoleClient()
   
   // Update subscription status to past_due
   if ((invoice as any).subscription) {
@@ -334,7 +334,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
 // Handle customer updates (payment method changes, etc)
 async function handleCustomerUpdated(customer: Stripe.Customer) {
-  const supabase = await createAdminClient()
+  const supabase = createServiceRoleClient()
   
   // Update payment method info if available
   const paymentMethod = customer.invoice_settings?.default_payment_method
@@ -378,7 +378,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // For subscription mode, ensure the subscription is created
   // This handles cases where the subscription.created webhook might be delayed or missed
   if (session.mode === 'subscription' && session.subscription) {
-    const supabase = await createAdminClient()
+    const supabase = createServiceRoleClient()
     
     // First, ensure the business has the Stripe customer ID
     if (session.metadata?.business_id && session.customer) {
