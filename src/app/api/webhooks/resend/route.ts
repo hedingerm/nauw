@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/src/lib/supabase/server'
+import { createRouteHandlerAdminClient } from '@/src/lib/supabase/route-handler'
 import crypto from 'crypto'
 
 // Resend webhook events we care about
@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
     console.log('Resend webhook event:', event.type, event.data.email_id)
     
     // Initialize Supabase client
-    const supabase = await createClient()
+    const response = new NextResponse()
+    const supabase = createRouteHandlerAdminClient(request, response)
     
     // Handle different event types
     switch (event.type) {

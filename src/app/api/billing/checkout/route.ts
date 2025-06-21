@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/src/lib/supabase/server"
+import { createRouteHandlerClient } from "@/src/lib/supabase/route-handler"
 import { StripeService } from "@/src/lib/services/stripe-service"
 
 export async function POST(request: NextRequest) {
   try {
     const { businessId, priceId, billingCycle, mode, amount } = await request.json()
     
-    const supabase = await createClient()
+    const response = new NextResponse()
+    const supabase = createRouteHandlerClient(request, response)
     
     // Verify the user owns this business
     const { data: { user } } = await supabase.auth.getUser()

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { EmailService } from '@/src/lib/services/email-service'
-import { createClient } from '@/src/lib/supabase/server'
+import { createRouteHandlerClient } from '@/src/lib/supabase/route-handler'
 
 // Test endpoint for email functionality (remove in production)
 export async function POST(request: NextRequest) {
@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Verify authentication
-    const supabase = await createClient()
+    const response = new NextResponse()
+    const supabase = createRouteHandlerClient(request, response)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
