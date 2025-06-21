@@ -23,8 +23,8 @@ const faqData = [
     answer: 'nauw bietet flexible Preispläne ab CHF 29 pro Monat. Sie können die Software 14 Tage kostenlos und unverbindlich testen.',
   },
   {
-    question: 'Ist nauw DSGVO-konform?',
-    answer: 'Ja, nauw ist vollständig DSGVO-konform und speichert alle Daten sicher in der Schweiz.',
+    question: 'Ist nauw datenschutzkonform?',
+    answer: 'Ja, nauw ist vollständig DSG-konform nach Schweizer Datenschutzgesetz und speichert alle Daten sicher in der Schweiz.',
   },
   {
     question: 'Kann ich nauw auf dem Handy nutzen?',

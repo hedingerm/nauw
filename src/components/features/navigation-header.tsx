@@ -44,6 +44,12 @@ export function NavigationHeader() {
               </span>
               <Button
                 variant="ghost"
+                onClick={() => router.push('/kontakt')}
+              >
+                Kontakt
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => router.push('/login')}
               >
                 Anmelden

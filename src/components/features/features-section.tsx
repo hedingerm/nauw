@@ -40,7 +40,7 @@ const features = [
   },
   {
     name: 'Schweizer Qualität & Datenschutz',
-    description: 'Ihre Daten bleiben in der Schweiz, 100% DSGVO-konform und sicher verschlüsselt – weil Vertrauen keine Kompromisse kennt.',
+    description: 'Ihre Daten bleiben in der Schweiz, 100% DSG-konform und sicher verschlüsselt – weil Vertrauen keine Kompromisse kennt.',
     icon: ShieldCheckIcon,
     painPoint: 'Bedenken beim Datenschutz?',
   },
