@@ -58,7 +58,9 @@
       "mcp__MCP_SUPABASE__get_logs",
       "WebFetch(domain:dev.to)",
       "Bash(timeout 15 npm run dev)",
-      "WebFetch(domain:vercel.com)"
+      "WebFetch(domain:vercel.com)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ]
   },
   "enableAllProjectMcpServers": false

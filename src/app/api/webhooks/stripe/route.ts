@@ -16,7 +16,13 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
   } catch (err) {
-    console.error('Webhook signature verification failed:', err)
+    console.error('Webhook signature verification failed:', {
+      error: err,
+      signature: signature,
+      webhookSecret: webhookSecret ? 'Set' : 'Not set',
+      webhookSecretLength: webhookSecret?.length,
+      bodyLength: body.length
+    })
     return NextResponse.json(
       { error: 'Invalid signature' },
       { status: 400 }
@@ -99,15 +105,31 @@ export async function POST(request: NextRequest) {
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const supabase = createServiceRoleClient()
   
+  console.log('Processing subscription update:', {
+    subscriptionId: subscription.id,
+    customerId: subscription.customer,
+    metadata: subscription.metadata,
+    status: subscription.status
+  })
+  
   // Find business by Stripe customer ID
   let { data: business, error: businessError } = await supabase
     .from('Business')
-    .select('id')
+    .select('id, stripe_customer_id')
     .eq('stripe_customer_id', subscription.customer)
-    .single()
+    .maybeSingle() // Use maybeSingle instead of single to avoid errors when no rows found
 
-  if (businessError || !business) {
-    console.error('Business not found for customer:', subscription.customer)
+  if (businessError) {
+    console.error('Error querying business by stripe_customer_id:', {
+      error: businessError,
+      customerId: subscription.customer,
+      errorCode: businessError.code,
+      errorMessage: businessError.message
+    })
+  }
+
+  if (!business) {
+    console.log('Business not found by stripe_customer_id, trying metadata fallback')
     
     // Try to find business by metadata if available
     const businessId = subscription.metadata?.business_id
@@ -115,32 +137,57 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       console.log('Attempting to find business by metadata ID:', businessId)
       const { data: businessByMeta, error: metaError } = await supabase
         .from('Business')
-        .select('id')
+        .select('id, stripe_customer_id')
         .eq('id', businessId)
         .single()
       
       if (businessByMeta && !metaError) {
-        // Update the business with the Stripe customer ID
-        console.log('Updating business with Stripe customer ID')
-        await supabase
-          .from('Business')
-          .update({ stripe_customer_id: subscription.customer as string })
-          .eq('id', businessByMeta.id)
+        // Update the business with the Stripe customer ID if not already set
+        if (!businessByMeta.stripe_customer_id) {
+          console.log('Updating business with Stripe customer ID')
+          const { error: updateError } = await supabase
+            .from('Business')
+            .update({ 
+              stripe_customer_id: subscription.customer as string,
+              // Don't include updated_at - it's handled automatically by the database
+            })
+            .eq('id', businessByMeta.id)
+          
+          if (updateError) {
+            console.error('Error updating business with stripe_customer_id:', updateError)
+          }
+        }
         
         business = businessByMeta
       } else {
-        console.error('Could not find business by ID:', businessId, metaError)
-        return
+        console.error('Could not find business by ID:', {
+          businessId,
+          error: metaError,
+          errorCode: metaError?.code,
+          errorMessage: metaError?.message
+        })
+        throw new Error(`Business not found with ID: ${businessId}`)
       }
     } else {
-      console.error('No business_id in subscription metadata')
-      return
+      console.error('No business_id in subscription metadata and no business found by customer ID')
+      throw new Error('Cannot process subscription without business association')
     }
   }
 
   // Get the price ID to find the plan
   const priceId = subscription.items.data[0]?.price.id
   const billingCycle = subscription.items.data[0]?.price.recurring?.interval === 'year' ? 'annual' : 'monthly'
+  
+  console.log('Looking up subscription plan:', {
+    priceId,
+    billingCycle,
+    column: billingCycle === 'annual' ? 'stripe_price_annual_id' : 'stripe_price_monthly_id',
+    subscriptionData: {
+      current_period_start: (subscription as any).current_period_start,
+      current_period_end: (subscription as any).current_period_end,
+      status: subscription.status
+    }
+  })
   
   // Find the subscription plan by price ID
   const { data: plan, error: planError } = await supabase
@@ -150,8 +197,14 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     .single()
 
   if (planError || !plan) {
-    console.error('Plan not found for price:', priceId)
-    return
+    console.error('Plan not found:', {
+      priceId,
+      billingCycle,
+      error: planError,
+      errorCode: planError?.code,
+      errorMessage: planError?.message
+    })
+    throw new Error(`Subscription plan not found for price ID: ${priceId}`)
   }
 
   // Check if subscription already exists
@@ -168,8 +221,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     stripe_customer_id: subscription.customer as string,
     status: subscription.status,
     billing_cycle: billingCycle,
-    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+    current_period_start: (subscription as any).current_period_start ? new Date((subscription as any).current_period_start * 1000).toISOString() : new Date().toISOString(),
+    current_period_end: (subscription as any).current_period_end ? new Date((subscription as any).current_period_end * 1000).toISOString() : new Date().toISOString(),
     cancel_at_period_end: subscription.cancel_at_period_end,
     canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
     trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
@@ -365,6 +418,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     subscriptionId: session.subscription
   })
   
+  const supabase = createServiceRoleClient()
+  
   // If this is a booster pack purchase, add the credits
   if (session.metadata?.type === 'booster_pack' && session.metadata?.business_id) {
     const { UsageService } = await import('@/src/lib/services/usage-service')
@@ -378,16 +433,43 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // For subscription mode, ensure the subscription is created
   // This handles cases where the subscription.created webhook might be delayed or missed
   if (session.mode === 'subscription' && session.subscription) {
-    const supabase = createServiceRoleClient()
-    
-    // First, ensure the business has the Stripe customer ID
+    // Critical: First ensure the business has the Stripe customer ID before any other operations
     if (session.metadata?.business_id && session.customer) {
-      console.log('Updating business with Stripe customer ID from checkout session')
-      await supabase
+      console.log('Ensuring business has Stripe customer ID from checkout session')
+      
+      // Check if business already has stripe_customer_id
+      const { data: existingBusiness, error: checkError } = await supabase
         .from('Business')
-        .update({ stripe_customer_id: session.customer as string })
+        .select('id, stripe_customer_id')
         .eq('id', session.metadata.business_id)
+        .single()
+      
+      if (checkError) {
+        console.error('Error checking business:', checkError)
+        throw new Error(`Failed to check business: ${checkError.message}`)
+      }
+      
+      // Only update if not already set
+      if (existingBusiness && !existingBusiness.stripe_customer_id) {
+        const { error: updateError } = await supabase
+          .from('Business')
+          .update({ 
+            stripe_customer_id: session.customer as string,
+            // Don't include updated_at - it's handled automatically by the database
+          })
+          .eq('id', session.metadata.business_id)
+        
+        if (updateError) {
+          console.error('Error updating business with stripe_customer_id:', updateError)
+          throw new Error(`Failed to update business: ${updateError.message}`)
+        }
+        
+        console.log('Successfully updated business with Stripe customer ID')
+      }
     }
+    
+    // Small delay to ensure database write is complete
+    await new Promise(resolve => setTimeout(resolve, 500))
     
     // Retrieve the full subscription details from Stripe
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
@@ -400,15 +482,38 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       metadata: subscription.metadata
     })
     
+    // Ensure subscription has business_id in metadata
+    if (!subscription.metadata?.business_id && session.metadata?.business_id) {
+      // Update the subscription metadata in Stripe
+      console.log('Updating subscription metadata in Stripe')
+      await stripe.subscriptions.update(subscription.id, {
+        metadata: {
+          ...subscription.metadata,
+          business_id: session.metadata.business_id
+        }
+      })
+      
+      // Update the local subscription object
+      subscription.metadata = {
+        ...subscription.metadata,
+        business_id: session.metadata.business_id
+      }
+    }
+    
     // Create/update the subscription in our database
     await handleSubscriptionUpdate(subscription)
     
     // Optionally trigger an immediate invoice payment succeeded event
     // to ensure the first invoice is recorded
     if (subscription.latest_invoice) {
-      const invoice = await stripe.invoices.retrieve(subscription.latest_invoice as string)
-      if (invoice.status === 'paid') {
-        await handleInvoicePaymentSucceeded(invoice)
+      try {
+        const invoice = await stripe.invoices.retrieve(subscription.latest_invoice as string)
+        if (invoice.status === 'paid') {
+          await handleInvoicePaymentSucceeded(invoice)
+        }
+      } catch (invoiceError) {
+        console.error('Error processing initial invoice:', invoiceError)
+        // Don't throw here as subscription is already created
       }
     }
   }

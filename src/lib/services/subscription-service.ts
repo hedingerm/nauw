@@ -89,7 +89,7 @@ export class SubscriptionService {
       .from("Subscription")
       .select(`
         *,
-        plan:SubscriptionPlan!plan_id(*)
+        plan:plan_id(*)
       `)
       .eq("business_id", businessId)
       .eq("status", "active")

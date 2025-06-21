@@ -52,7 +52,7 @@ export class StripeService {
       billingCycle
     })
     
-    // Add business ID to metadata
+    // Add business ID to metadata - this is critical for webhook processing
     const sessionMetadata = {
       ...metadata,
       business_id: businessId,
@@ -72,13 +72,24 @@ export class StripeService {
         cancel_url: cancelUrl,
         metadata: sessionMetadata,
         subscription_data: {
-          metadata: sessionMetadata
+          // Critical: Pass metadata to the subscription that will be created
+          metadata: {
+            business_id: businessId,
+            billing_cycle: billingCycle
+          }
         },
         locale: 'de',
         payment_method_collection: 'if_required',
         customer_update: {
           address: 'auto'
         }
+      })
+
+      console.log('Checkout session created:', {
+        sessionId: session.id,
+        customerId: session.customer,
+        metadata: session.metadata,
+        subscriptionDataMetadata: sessionMetadata
       })
 
       return session
