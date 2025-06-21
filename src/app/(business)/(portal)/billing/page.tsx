@@ -8,11 +8,12 @@ import { Badge } from "@/src/components/ui/badge"
 import { Progress } from "@/src/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
 import { CreditCard, Package, Receipt, TrendingUp, AlertCircle, ExternalLink } from "lucide-react"
-import { SubscriptionService, SubscriptionWithPlan } from "@/src/lib/services/subscription-service"
-import { UsageService } from "@/src/lib/services/usage-service"
-import { BillingService, Invoice } from "@/src/lib/services/billing-service"
+import { SubscriptionService, SubscriptionWithPlan } from "@/src/lib/services/subscription.service"
+import { UsageService } from "@/src/lib/services/usage.service"
+import { BillingService, Invoice } from "@/src/lib/services/billing.service"
 import { createClient } from "@/src/lib/supabase/client"
 import { formatCurrency } from "@/src/lib/utils"
+import { formatDate } from "@/src/lib/utils/date"
 import { Alert, AlertDescription } from "@/src/components/ui/alert"
 
 export default function BillingPage() {
@@ -159,7 +160,7 @@ export default function BillingPage() {
               </div>
 
               <div className="text-sm text-muted-foreground">
-                <p>Nächste Abrechnung: {new Date(subscription.current_period_end).toLocaleDateString("de-CH")}</p>
+                <p>Nächste Abrechnung: {formatDate(subscription.current_period_end)}</p>
                 {subscription.cancel_at_period_end && (
                   <p className="text-red-600 mt-1">Kündigung zum Periodenende</p>
                 )}
@@ -183,8 +184,8 @@ export default function BillingPage() {
               Nutzungsübersicht
             </CardTitle>
             <CardDescription>
-              Aktuelle Periode: {new Date(usageData.period_start).toLocaleDateString("de-CH")} - 
-              {new Date(usageData.period_end).toLocaleDateString("de-CH")}
+              Aktuelle Periode: {formatDate(usageData.period_start)} - 
+              {formatDate(usageData.period_end)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -264,7 +265,7 @@ export default function BillingPage() {
                   <div>
                     <p className="font-medium">{invoice.invoice_number}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(invoice.created_at!).toLocaleDateString("de-CH")}
+                      {formatDate(invoice.created_at!)}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">

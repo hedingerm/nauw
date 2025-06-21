@@ -44,7 +44,6 @@ export function CookieConsentBanner() {
         if (!acceptedByScrolling) {
           // User clicked accept - set cookie value to true
           Cookies.set(COOKIE_NAME, 'true', { expires: 365 })
-          console.log('Cookies accepted - Analytics enabled')
           // Force page reload to initialize analytics
           window.location.reload()
         }
@@ -52,7 +51,6 @@ export function CookieConsentBanner() {
       onDecline={() => {
         // User clicked decline - set cookie value to false
         Cookies.set(COOKIE_NAME, 'false', { expires: 365 })
-        console.log('Only essential cookies accepted - Analytics disabled')
       }}
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

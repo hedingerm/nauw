@@ -5,6 +5,7 @@ import { Checkbox } from '@/src/components/ui/checkbox'
 import { Label } from '@/src/components/ui/label'
 import { Button } from '@/src/components/ui/button'
 import { Input } from '@/src/components/ui/input'
+import { WEEKDAYS_WITH_KEYS as WEEKDAYS } from '@/src/lib/constants/calendar'
 
 export interface BusinessHours {
   [key: string]: {
@@ -16,16 +17,6 @@ export interface BusinessHours {
     lunchEnd?: string
   }
 }
-
-const WEEKDAYS = [
-  { key: 'monday', label: 'Montag' },
-  { key: 'tuesday', label: 'Dienstag' },
-  { key: 'wednesday', label: 'Mittwoch' },
-  { key: 'thursday', label: 'Donnerstag' },
-  { key: 'friday', label: 'Freitag' },
-  { key: 'saturday', label: 'Samstag' },
-  { key: 'sunday', label: 'Sonntag' },
-]
 
 const DEFAULT_HOURS = {
   monday: { isOpen: true, openTime: '09:00', closeTime: '18:00', hasLunchBreak: false },

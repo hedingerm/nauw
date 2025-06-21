@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createRouteHandlerClient } from "@/src/lib/supabase/route-handler"
-import { StripeService } from "@/src/lib/services/stripe-service"
+import { StripeService } from "@/src/lib/services/stripe.service"
 
 export async function POST(request: NextRequest) {
   try {

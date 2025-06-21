@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/src/components/ui/alert"
 import { Button } from "@/src/components/ui/button"
 import { AlertCircle, TrendingUp } from "lucide-react"
-import { UsageService } from "@/src/lib/services/usage-service"
+import { UsageService } from "@/src/lib/services/usage.service"
 import Link from "next/link"
 
 interface UsageAlertProps {

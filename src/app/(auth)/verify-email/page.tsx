@@ -18,15 +18,6 @@ function VerifyEmailContent() {
   useEffect(() => {
     const handleEmailVerification = async () => {
       try {
-        // Log all URL params for debugging
-        console.log('Verify email params:', {
-          token_hash: searchParams.get('token_hash'),
-          type: searchParams.get('type'),
-          error: searchParams.get('error'),
-          error_description: searchParams.get('error_description'),
-          all_params: Array.from(searchParams.entries())
-        })
-
         // Check if there's an error in the URL params (Supabase adds this on failure)
         const errorDescription = searchParams.get('error_description')
         if (errorDescription) {
@@ -71,7 +62,6 @@ function VerifyEmailContent() {
           // If no session, user will need to log in manually
         } else if (access_token || refresh_token) {
           // Supabase might send tokens directly
-          console.log('Found access/refresh tokens in URL')
           setSuccess(true)
           setVerifying(false)
           
@@ -94,14 +84,11 @@ function VerifyEmailContent() {
         } else {
           // No verification params - check if this is a redirect after successful verification
           // Sometimes Supabase redirects without parameters after processing the verification
-          console.log('No verification params found, checking user status...')
           
           // Get the current user to check if they're verified
           const { data: { user }, error: userError } = await supabase.auth.getUser()
           
           if (user) {
-            console.log('User found:', { id: user.id, email: user.email, email_confirmed_at: user.email_confirmed_at })
-            
             if (user.email_confirmed_at) {
               // Email is already verified
               setSuccess(true)
@@ -129,7 +116,6 @@ function VerifyEmailContent() {
           } else {
             // No user session - they might have been redirected here after verification
             // Show success message and prompt to log in
-            console.log('No user session found')
             
             // Check if we came from a Supabase redirect
             // In many cases, just arriving at /verify-email means verification worked
@@ -138,7 +124,6 @@ function VerifyEmailContent() {
             
             if (urlPath === '/verify-email' && !hasQueryParams) {
               // Likely redirected here after successful verification
-              console.log('At /verify-email with no params, assuming verification success')
               setSuccess(true)
               setVerifying(false)
             } else {

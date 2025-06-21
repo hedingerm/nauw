@@ -1,8 +1,8 @@
 import { createClient } from "@/src/lib/supabase/client"
-import { SubscriptionService } from "./subscription-service"
-import { UsageService } from "./usage-service"
+import { SubscriptionService } from "./subscription.service"
+import { UsageService } from "./usage.service"
 import { BusinessService } from "./business.service"
-import { EmailService } from "./email-service"
+import { EmailService } from "./email.service"
 
 export interface NotificationData {
   to: string

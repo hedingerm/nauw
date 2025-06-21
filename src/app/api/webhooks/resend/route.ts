@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
     
     // Parse event
     const event: ResendWebhookEvent = JSON.parse(rawBody)
-    console.log('Resend webhook event:', event.type, event.data.email_id)
     
     // Initialize Supabase client
     const response = new NextResponse()
@@ -123,7 +122,7 @@ export async function POST(request: NextRequest) {
       case 'email.opened':
       case 'email.clicked':
         // Track engagement (optional)
-        console.log(`Email ${event.type}:`, event.data.to[0])
+        // Track email engagement events
         break
     }
     

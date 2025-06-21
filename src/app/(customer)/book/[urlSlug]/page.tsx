@@ -302,7 +302,6 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
               availableEmployeeCount: availableSlots.length,
               availableEmployees: availableEmployeesList
             })
-            console.log(`Time ${time}: ${availableSlots.length} employees available, fairly selected: ${defaultSlot.employeeName}`)
           } else {
             mergedSlots.push({
               time,

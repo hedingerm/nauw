@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import type Stripe from 'stripe'
 import { stripe, webhookSecret } from '@/src/lib/stripe/config'
-import { SubscriptionService } from '@/src/lib/services/subscription-service'
-import { BillingService } from '@/src/lib/services/billing-service'
+import { SubscriptionService } from '@/src/lib/services/subscription.service'
+import { BillingService } from '@/src/lib/services/billing.service'
 import { createServiceRoleClient } from '@/src/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
@@ -31,12 +31,6 @@ export async function POST(request: NextRequest) {
 
   // Initialize Supabase service role client for webhook operations
   const supabase = createServiceRoleClient()
-
-  console.log('Webhook received:', {
-    type: event.type,
-    id: event.id,
-    created: new Date(event.created * 1000).toISOString()
-  })
 
   try {
     switch (event.type) {
@@ -88,7 +82,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        // Unhandled event type
     }
 
     return NextResponse.json({ received: true }, { status: 200 })
@@ -104,13 +98,6 @@ export async function POST(request: NextRequest) {
 // Handle subscription create/update
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const supabase = createServiceRoleClient()
-  
-  console.log('Processing subscription update:', {
-    subscriptionId: subscription.id,
-    customerId: subscription.customer,
-    metadata: subscription.metadata,
-    status: subscription.status
-  })
   
   // Find business by Stripe customer ID
   let { data: business, error: businessError } = await supabase
@@ -129,12 +116,9 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   }
 
   if (!business) {
-    console.log('Business not found by stripe_customer_id, trying metadata fallback')
-    
     // Try to find business by metadata if available
     const businessId = subscription.metadata?.business_id
     if (businessId) {
-      console.log('Attempting to find business by metadata ID:', businessId)
       const { data: businessByMeta, error: metaError } = await supabase
         .from('Business')
         .select('id, stripe_customer_id')
@@ -144,7 +128,6 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       if (businessByMeta && !metaError) {
         // Update the business with the Stripe customer ID if not already set
         if (!businessByMeta.stripe_customer_id) {
-          console.log('Updating business with Stripe customer ID')
           const { error: updateError } = await supabase
             .from('Business')
             .update({ 
@@ -177,17 +160,6 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   // Get the price ID to find the plan
   const priceId = subscription.items.data[0]?.price.id
   const billingCycle = subscription.items.data[0]?.price.recurring?.interval === 'year' ? 'annual' : 'monthly'
-  
-  console.log('Looking up subscription plan:', {
-    priceId,
-    billingCycle,
-    column: billingCycle === 'annual' ? 'stripe_price_annual_id' : 'stripe_price_monthly_id',
-    subscriptionData: {
-      current_period_start: (subscription as any).current_period_start,
-      current_period_end: (subscription as any).current_period_end,
-      status: subscription.status
-    }
-  })
   
   // Find the subscription plan by price ID
   const { data: plan, error: planError } = await supabase
@@ -365,41 +337,29 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     .single()
 
   if (business) {
-    const { NotificationService } = await import('@/src/lib/services/notification-service')
+    const { NotificationService } = await import('@/src/lib/services/notification.service')
     await NotificationService.sendPaymentFailedNotification(
       business.id,
       (invoice.amount_due || 0) / 100 // Convert from cents to CHF
     )
   }
 
-  console.log('Payment failed for invoice:', invoice.id)
 }
 
 // Handle customer updates (payment method changes, etc)
 async function handleCustomerUpdated(customer: Stripe.Customer) {
   // Currently no fields to update since we removed redundant fields
   // Keep this handler in case we need to track customer updates in the future
-  console.log('Customer updated:', {
-    customerId: customer.id,
-    email: customer.email
-  })
+  // Log customer updates if needed in the future
 }
 
 // Handle completed checkout sessions
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  console.log('Checkout completed:', {
-    sessionId: session.id,
-    mode: session.mode,
-    metadata: session.metadata,
-    customerId: session.customer,
-    subscriptionId: session.subscription
-  })
-  
   const supabase = createServiceRoleClient()
   
   // If this is a booster pack purchase, add the credits
   if (session.metadata?.type === 'booster_pack' && session.metadata?.business_id) {
-    const { UsageService } = await import('@/src/lib/services/usage-service')
+    const { UsageService } = await import('@/src/lib/services/usage.service')
     await UsageService.addBoosterPack(
       session.metadata.business_id,
       parseInt(session.metadata.amount || '50')
@@ -412,7 +372,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (session.mode === 'subscription' && session.subscription) {
     // Critical: First ensure the business has the Stripe customer ID before any other operations
     if (session.metadata?.business_id && session.customer) {
-      console.log('Ensuring business has Stripe customer ID from checkout session')
       
       // Check if business already has stripe_customer_id
       const { data: existingBusiness, error: checkError } = await supabase
@@ -441,7 +400,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           throw new Error(`Failed to update business: ${updateError.message}`)
         }
         
-        console.log('Successfully updated business with Stripe customer ID')
       }
     }
     
@@ -451,18 +409,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     // Retrieve the full subscription details from Stripe
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
     
-    console.log('Retrieved subscription details:', {
-      id: subscription.id,
-      status: subscription.status,
-      customerId: subscription.customer,
-      priceId: subscription.items.data[0]?.price.id,
-      metadata: subscription.metadata
-    })
-    
     // Ensure subscription has business_id in metadata
     if (!subscription.metadata?.business_id && session.metadata?.business_id) {
       // Update the subscription metadata in Stripe
-      console.log('Updating subscription metadata in Stripe')
       await stripe.subscriptions.update(subscription.id, {
         metadata: {
           ...subscription.metadata,

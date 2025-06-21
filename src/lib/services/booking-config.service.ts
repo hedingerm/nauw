@@ -154,8 +154,6 @@ export class BookingPageConfigService {
     // Always update the updatedAt timestamp
     updateData.updatedAt = new Date().toISOString()
     
-    console.log('Updating config with:', updateData)
-    
     const { data, error } = await supabase
       .from('BookingPageConfig')
       .update(updateData)
@@ -218,7 +216,6 @@ export class BookingPageConfigService {
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
     const fileName = `${businessId}/${type}-${Date.now()}.${fileExt}`
     
-    console.log('Uploading file:', { fileName, fileType: file.type, fileSize: file.size })
     
     // Upload to storage
     const { data, error } = await supabase.storage
@@ -293,7 +290,6 @@ export class BookingPageConfigService {
       .from('booking-images')
       .getPublicUrl(fileName)
 
-    console.log('Upload successful, public URL:', publicUrl)
 
     // Update config with new URL using a direct database update
     const updateField = type === 'logo' ? 'logoUrl' : type === 'cover' ? 'coverImageUrl' : 'faviconUrl'
@@ -342,7 +338,6 @@ export class BookingPageConfigService {
         const urlParts = currentUrl.split('/storage/v1/object/public/booking-images/')
         if (urlParts.length > 1) {
           const filePath = urlParts[1]
-          console.log('Deleting file from storage:', filePath)
           
           const { error: deleteError } = await supabase.storage
             .from('booking-images')

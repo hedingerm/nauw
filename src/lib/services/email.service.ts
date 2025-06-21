@@ -89,7 +89,6 @@ export class EmailService {
         return { success: false, error: result.error.message }
       }
       
-      console.log('Email sent successfully:', result.data)
       return { success: true }
       
     } catch (error) {

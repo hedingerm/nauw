@@ -213,9 +213,6 @@ export class BusinessService {
   static async completeOnboarding(data: CompleteOnboardingData) {
     const supabase = await this.getClient()
     
-    console.log('BusinessService.completeOnboarding received data:', data)
-    console.log('Service data:', data.service)
-    
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -363,16 +360,6 @@ export class BusinessService {
       // 4. Optionally create the first service
       let service: Service | null = null
       if (data.service) {
-        console.log('Creating service with data:', {
-          businessId: business.id,
-          name: data.service.name,
-          description: data.service.description || null,
-          duration: data.service.duration,
-          price: data.service.price,
-          bufferBefore: data.service.bufferBefore || 0,
-          bufferAfter: data.service.bufferAfter || 0,
-        })
-        
         const { data: serviceData, error: serviceError } = await supabase
           .from('Service')
           .insert({
@@ -398,7 +385,6 @@ export class BusinessService {
           throw new Error(serviceError?.message || 'Fehler beim Erstellen des Services')
         }
 
-        console.log('Service created successfully:', serviceData)
         service = serviceData
 
         // 5. Assign service to employees who can perform services
@@ -427,7 +413,6 @@ export class BusinessService {
         service,
       }
       
-      console.log('Returning from completeOnboarding:', returnValue)
       return returnValue
     } catch (error: any) {
       console.error('Onboarding error:', error)

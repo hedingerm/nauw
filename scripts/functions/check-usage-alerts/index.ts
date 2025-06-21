@@ -30,7 +30,6 @@ serve(async (req) => {
       )
     }
 
-    console.log('Starting usage alerts check...')
 
     // Get all active subscriptions
     const { data: subscriptions, error: subError } = await supabase
@@ -48,7 +47,6 @@ serve(async (req) => {
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      console.log('No active subscriptions found')
       return new Response(
         JSON.stringify({ message: 'No active subscriptions to check' }),
         { 
@@ -57,7 +55,6 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Checking ${subscriptions.length} active subscriptions`)
 
     const alerts: any[] = []
     const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM format
@@ -110,7 +107,6 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Found ${alerts.length} businesses needing alerts`)
 
     // Send alerts via our API
     if (alerts.length > 0) {

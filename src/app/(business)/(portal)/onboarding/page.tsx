@@ -138,7 +138,6 @@ export default function OnboardingPage() {
 
   const handleNextStep = async () => {
     let isValid = false
-    console.log('handleNextStep called, currentStep:', currentStep)
 
     switch (currentStep) {
       case 1:
@@ -172,17 +171,10 @@ export default function OnboardingPage() {
         break
       case 5:
         if (!skipService) {
-          console.log('Step 5 - validating service form')
-          console.log('Current service form values:', serviceForm.getValues())
-          console.log('Current employeeIds:', serviceForm.getValues('employeeIds'))
           isValid = await serviceForm.trigger()
-          console.log('Service form validation result:', isValid)
           if (isValid) {
             const serviceData = serviceForm.getValues()
-            console.log('Saving service data to state:', serviceData)
             setData(prev => ({ ...prev, serviceInfo: serviceData as any }))
-          } else {
-            console.log('Service form validation errors:', serviceForm.formState.errors)
           }
         } else {
           isValid = true
@@ -200,7 +192,6 @@ export default function OnboardingPage() {
         // Moving to the next step
         if (currentStep === 4) {
           // Set employeeIds when entering step 5
-          console.log('Setting employeeIds for step 5:', tempEmployeeIds)
           serviceForm.setValue('employeeIds', tempEmployeeIds)
         }
         setCurrentStep(prev => prev + 1)
@@ -214,19 +205,11 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (currentServiceData?: any) => {
     if (isSubmitting) {
-      console.log('Already submitting, skipping...')
       return
     }
     
     try {
       setIsSubmitting(true)
-      console.log('Submitting onboarding data:', {
-        business: data.businessInfo,
-        businessHours: data.businessHours,
-        owner: data.ownerInfo,
-        additionalEmployee: data.additionalEmployee,
-        service: data.serviceInfo,
-      })
 
       // Validate required data
       if (!data.businessInfo) {
@@ -253,12 +236,6 @@ export default function OnboardingPage() {
         return
       }
 
-      console.log('=== ONBOARDING SUBMISSION DEBUG ===')
-      console.log('Current data state:', data)
-      console.log('skipService flag:', skipService)
-      console.log('skipEmployee flag:', skipEmployee)
-      console.log('currentServiceData parameter:', currentServiceData)
-      
       // Prepare the submission data
       // Use currentServiceData if provided (from step 5), otherwise use state
       const serviceData = currentServiceData || data.serviceInfo
@@ -272,10 +249,6 @@ export default function OnboardingPage() {
         additionalEmployee: skipEmployee ? undefined : data.additionalEmployee,
         service: skipService ? undefined : serviceData,
       }
-
-      console.log('Final submission data:', submissionData)
-      console.log('Service data from state:', data.serviceInfo)
-      console.log('=== END DEBUG ===')
 
       const result = await BusinessService.completeOnboarding(submissionData)
 
@@ -759,7 +732,6 @@ export default function OnboardingPage() {
               <CardContent>
                 {!skipService ? (
                   <form onSubmit={serviceForm.handleSubmit(async (data) => {
-                    console.log('Service form submitted with data:', data)
                     await handleNextStep()
                   })} className="space-y-4">
                     <div>
@@ -866,7 +838,6 @@ export default function OnboardingPage() {
                           type="button"
                           variant="outline"
                           onClick={async () => {
-                            console.log('Skip service button clicked')
                             setSkipService(true)
                             await handleSubmit(undefined)
                           }}
@@ -890,7 +861,6 @@ export default function OnboardingPage() {
                         Dienstleistung erstellen
                       </Button>
                       <Button onClick={async () => {
-                        console.log('Fertigstellen clicked (service skipped)')
                         await handleSubmit(undefined)
                       }} disabled={isSubmitting}>
                         {isSubmitting ? 'Wird erstellt...' : 'Fertigstellen'}

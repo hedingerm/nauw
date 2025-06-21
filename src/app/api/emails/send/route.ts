@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { EmailService } from '@/src/lib/services/email-service'
+import { EmailService } from '@/src/lib/services/email.service'
 import { createRouteHandlerClient } from '@/src/lib/supabase/route-handler'
 
 export async function POST(request: NextRequest) {

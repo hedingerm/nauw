@@ -26,9 +26,12 @@ export interface SubscriptionWithPlan {
 }
 
 export class SubscriptionService {
+  private static async getClient() {
+    return createClient()
+  }
   // Get all available subscription plans
   static async getPlans(): Promise<SubscriptionPlan[]> {
-    const supabase = createClient()
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from("SubscriptionPlan")
       .select("*")
@@ -50,7 +53,7 @@ export class SubscriptionService {
 
   // Get a specific plan by ID
   static async getPlanById(planId: string): Promise<SubscriptionPlan | null> {
-    const supabase = createClient()
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from("SubscriptionPlan")
       .select("*")
@@ -67,7 +70,7 @@ export class SubscriptionService {
 
   // Get a specific plan by name
   static async getPlanByName(name: string): Promise<SubscriptionPlan | null> {
-    const supabase = createClient()
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from("SubscriptionPlan")
       .select("*")
@@ -84,7 +87,7 @@ export class SubscriptionService {
 
   // Get subscription for a business
   static async getBusinessSubscription(businessId: string): Promise<SubscriptionWithPlan | null> {
-    const supabase = createClient()
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from("Subscription")
       .select(`
@@ -109,7 +112,7 @@ export class SubscriptionService {
 
   // Create a new subscription
   static async createSubscription(input: CreateSubscriptionInput): Promise<Subscription> {
-    const supabase = createClient()
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from("Subscription")
       .insert(input)
@@ -121,15 +124,8 @@ export class SubscriptionService {
       throw new Error("Fehler beim Erstellen des Abonnements")
     }
 
-    // Update the business record with the subscription ID
-    const { error: updateError } = await supabase
-      .from("Business")
-      .update({ subscription_id: data.id })
-      .eq("id", input.business_id)
-
-    if (updateError) {
-      console.error("Error updating business with subscription ID:", updateError)
-    }
+    // No need to update business with subscription_id - following Single Source of Truth
+    // The subscription can be found by querying Subscription table with business_id
 
     return data
   }
@@ -139,7 +135,7 @@ export class SubscriptionService {
     subscriptionId: string,
     updates: UpdateSubscriptionInput
   ): Promise<Subscription> {
-    const supabase = createClient()
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from("Subscription")
       .update(updates)
@@ -184,7 +180,7 @@ export class SubscriptionService {
     overage_bookings: number
     booster_bookings: number
   }> {
-    const supabase = createClient()
+    const supabase = await this.getClient()
     // Get the subscription to find the current period
     const { data: subscription, error: subError } = await supabase
       .from("Subscription")

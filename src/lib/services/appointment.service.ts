@@ -15,8 +15,8 @@ import {
 import { CustomerService } from './customer.service'
 import { ServiceService } from './service.service'
 import { BusinessService } from './business.service'
-import { SubscriptionService } from './subscription-service'
-import { UsageService } from './usage-service'
+import { SubscriptionService } from './subscription.service'
+import { UsageService } from './usage.service'
 import { z } from 'zod'
 
 type Appointment = Database['public']['Tables']['Appointment']['Row']
@@ -222,7 +222,7 @@ export class AppointmentService {
         await UsageService.logBooking(businessId, appointment.id, service.name)
         
         // Check if we need to send usage alerts
-        const { NotificationService } = await import('./notification-service')
+        const { NotificationService } = await import('./notification.service')
         const usage = await UsageService.getUsagePercentage(businessId)
         if (!usage.isUnlimited && usage.percentage >= 80) {
           await NotificationService.sendUsageAlert(businessId, usage.percentage)
@@ -365,7 +365,7 @@ export class AppointmentService {
         await UsageService.logBooking(currentAppointment.businessId, appointment.id, service.name)
         
         // Check if we need to send usage alerts
-        const { NotificationService } = await import('./notification-service')
+        const { NotificationService } = await import('./notification.service')
         const usage = await UsageService.getUsagePercentage(currentAppointment.businessId)
         if (!usage.isUnlimited && usage.percentage >= 80) {
           await NotificationService.sendUsageAlert(currentAppointment.businessId, usage.percentage)

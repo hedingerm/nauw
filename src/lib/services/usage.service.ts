@@ -1,6 +1,6 @@
 import { createClient } from "@/src/lib/supabase/client"
 import { Tables, TablesInsert } from "@/src/lib/supabase/database.types"
-import { SubscriptionService } from "./subscription-service"
+import { SubscriptionService } from "./subscription.service"
 
 export type UsageLog = Tables<"UsageLog">
 export type CreateUsageLogInput = Omit<TablesInsert<"UsageLog">, "id" | "created_at">

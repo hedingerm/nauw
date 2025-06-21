@@ -60,7 +60,14 @@
       "Bash(timeout 15 npm run dev)",
       "WebFetch(domain:vercel.com)",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs"
+      "mcp__context7__get-library-docs",
+      "Bash(cp:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(npx depcheck:*)",
+      "Bash(rg:*)",
+      "Bash(awk:*)",
+      "Bash(git mv:*)"
     ]
   },
   "enableAllProjectMcpServers": false

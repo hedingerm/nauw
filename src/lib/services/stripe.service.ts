@@ -1,6 +1,6 @@
 import { stripe } from '@/src/lib/stripe/config'
 import Stripe from 'stripe'
-import { SubscriptionService } from './subscription-service'
+import { SubscriptionService } from './subscription.service'
 
 export interface CreateCheckoutSessionParams {
   businessId: string
@@ -45,13 +45,6 @@ export class StripeService {
     metadata = {},
     billingCycle = 'monthly'
   }: CreateCheckoutSessionParams): Promise<Stripe.Checkout.Session> {
-    console.log('Creating checkout session with:', {
-      businessId,
-      customerId,
-      priceId,
-      billingCycle
-    })
-    
     // Add business ID to metadata - this is critical for webhook processing
     const sessionMetadata = {
       ...metadata,
@@ -83,13 +76,6 @@ export class StripeService {
         customer_update: {
           address: 'auto'
         }
-      })
-
-      console.log('Checkout session created:', {
-        sessionId: session.id,
-        customerId: session.customer,
-        metadata: session.metadata,
-        subscriptionDataMetadata: sessionMetadata
       })
 
       return session
