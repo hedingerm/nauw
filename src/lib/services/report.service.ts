@@ -1,4 +1,4 @@
-import { createClient } from '../supabase/server'
+import { createClient } from '../supabase/client'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths } from 'date-fns'
 
 export interface ServiceStatistics {
@@ -61,13 +61,13 @@ export interface TimeAnalytics {
 }
 
 export class ReportService {
-  private static async getClient() {
+  private static getClient() {
     return createClient()
   }
 
   // Get comprehensive revenue comparison data
   static async getRevenueComparison(businessId: string): Promise<RevenueComparison> {
-    const supabase = await this.getClient()
+    const supabase = this.getClient()
     
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -131,7 +131,7 @@ export class ReportService {
     startDate: Date,
     endDate: Date
   ): Promise<ServiceStatistics[]> {
-    const supabase = await this.getClient()
+    const supabase = this.getClient()
 
     // Get all appointments with service data in the date range
     const { data: appointments, error } = await supabase
@@ -196,7 +196,7 @@ export class ReportService {
     startDate: Date,
     endDate: Date
   ): Promise<EmployeeStatistics[]> {
-    const supabase = await this.getClient()
+    const supabase = this.getClient()
 
     // Get all appointments with employee and service data
     const { data: appointments, error } = await supabase
@@ -277,7 +277,7 @@ export class ReportService {
     startDate: Date,
     endDate: Date
   ): Promise<CustomerStatistics> {
-    const supabase = await this.getClient()
+    const supabase = this.getClient()
 
     // Get all appointments with customer data
     const { data: appointments, error } = await supabase
@@ -368,7 +368,7 @@ export class ReportService {
     startDate: Date,
     endDate: Date
   ): Promise<TimeAnalytics> {
-    const supabase = await this.getClient()
+    const supabase = this.getClient()
 
     const { data: appointments, error } = await supabase
       .from('Appointment')
@@ -443,7 +443,7 @@ export class ReportService {
     startDate: Date,
     endDate: Date
   ): Promise<string> {
-    const supabase = await this.getClient()
+    const supabase = this.getClient()
 
     const { data: appointments, error } = await supabase
       .from('Appointment')
