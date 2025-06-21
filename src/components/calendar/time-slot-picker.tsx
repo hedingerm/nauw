@@ -31,8 +31,15 @@ export function TimeSlotPicker({
   useEffect(() => {
     if (initialTime && availableSlots.length > 0) {
       const initialSlot = availableSlots.find(slot => {
-        const slotTime = format(new Date(slot.startTime), 'HH:mm')
-        return slotTime === initialTime
+        // Handle both HH:mm format and full ISO string
+        if (initialTime.includes('T')) {
+          // Full ISO string
+          return slot.startTime === initialTime
+        } else {
+          // HH:mm format
+          const slotTime = format(new Date(slot.startTime), 'HH:mm')
+          return slotTime === initialTime
+        }
       })
       if (initialSlot) {
         setSelectedSlot(initialSlot)

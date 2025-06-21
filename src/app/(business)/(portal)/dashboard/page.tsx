@@ -7,7 +7,20 @@ import { Badge } from '@/src/components/ui/badge'
 import { BusinessService } from '@/src/lib/services/business.service'
 import { AppointmentService } from '@/src/lib/services/appointment.service'
 import { useAuth } from '@/src/lib/auth/context'
-import { Briefcase, Users, Calendar, UserCheck, Clock, TrendingUp, Activity, AlertCircle, ChevronRight } from 'lucide-react'
+import { 
+  Calendar, 
+  Plus,
+  Clock,
+  TrendingUp,
+  Users,
+  CheckCircle,
+  AlertCircle,
+  ChevronRight,
+  BarChart3,
+  UserPlus,
+  FileText,
+  Briefcase
+} from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -36,7 +49,6 @@ export default function DashboardPage() {
       if (businessData) {
         setBusiness(businessData)
         
-        // Load all dashboard data in parallel
         const [
           statsData,
           todayAppts,
@@ -46,7 +58,7 @@ export default function DashboardPage() {
         ] = await Promise.all([
           BusinessService.getStats(businessData.id),
           AppointmentService.getTodaysAppointments(businessData.id),
-          AppointmentService.getUpcomingAppointments(businessData.id, 7),
+          AppointmentService.getUpcomingAppointments(businessData.id, 3),
           AppointmentService.getRevenueStats(businessData.id),
           AppointmentService.getRecentAppointments(businessData.id, 5)
         ])
@@ -87,87 +99,109 @@ export default function DashboardPage() {
     )
   }
 
-  const statCards = [
-    {
-      title: 'Heutige Termine',
-      value: stats?.todayAppointments || 0,
-      description: 'Termine für heute',
-      icon: Calendar,
-      href: '/calendar',
-      trend: stats?.pendingAppointments > 0 ? `${stats.pendingAppointments} ausstehend` : null,
-      trendColor: 'yellow',
-    },
-    {
-      title: 'Umsatz heute',
-      value: `CHF ${revenueStats?.todayRevenue || 0}`,
-      description: 'Heutiger Umsatz',
-      icon: TrendingUp,
-      href: '/reports',
-    },
-    {
-      title: 'Kunden',
-      value: stats?.customers || 0,
-      description: 'Registrierte Kunden',
-      icon: UserCheck,
-      href: '/customers',
-      trend: `${stats?.monthAppointments || 0} diesen Monat`,
-    },
-    {
-      title: 'Services',
-      value: stats?.services || 0,
-      description: 'Aktive Dienstleistungen',
-      icon: Briefcase,
-      href: '/services',
-    },
-  ]
+  const pendingCount = stats?.pendingAppointments || 0
+  const todayCount = stats?.todayAppointments || 0
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Willkommen zurück, {business.name}
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <Link key={card.title} href={card.href}>
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {card.title}
-                </CardTitle>
-                <card.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{card.value}</div>
-                <p className="text-xs text-muted-foreground">
-                  {card.description}
-                </p>
-                {card.trend && (
-                  <div className="mt-2">
-                    <Badge variant={card.trendColor === 'yellow' ? 'secondary' : 'default'} className="text-xs">
-                      {card.trend}
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Guten Tag, {business.name}</h1>
+          <p className="text-muted-foreground">
+            {format(new Date(), 'EEEE, d. MMMM yyyy', { locale: de })}
+          </p>
+        </div>
+        <Button asChild size="lg" className="w-full sm:w-auto">
+          <Link href="/appointments/new">
+            <Plus className="mr-2 h-5 w-5" />
+            Neuer Termin
           </Link>
-        ))}
+        </Button>
       </div>
 
-      {/* Today's Appointments Section */}
+      {/* Key Metrics */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Heute</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{todayCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Termine
+            </p>
+            {pendingCount > 0 && (
+              <Badge variant="secondary" className="mt-2 text-xs">
+                {pendingCount} ausstehend
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Umsatz heute</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">CHF {revenueStats?.todayRevenue || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {todayCount > 0 ? `Ø CHF ${Math.round((revenueStats?.todayRevenue || 0) / todayCount)}` : 'Keine Termine'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Aktive Kunden</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.monthAppointments || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              diesen Monat
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Aufgaben</CardTitle>
+              {pendingCount > 0 ? (
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {pendingCount > 0 ? 'zu bestätigen' : 'Alles erledigt'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        {/* Left Column - Today's Schedule & Upcoming */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Today's Timeline */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
-                <CardTitle>Heutige Termine</CardTitle>
-                <CardDescription>
-                  {format(new Date(), 'EEEE, d. MMMM yyyy', { locale: de })}
-                </CardDescription>
+                <CardTitle>Heutiger Zeitplan</CardTitle>
+                <CardDescription>Ihre Termine für heute</CardDescription>
               </div>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/calendar">
@@ -177,33 +211,76 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {todayAppointments.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Keine Termine für heute geplant
+                <div className="text-center py-8">
+                  <Clock className="mx-auto h-12 w-12 text-muted-foreground/20" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Keine Termine für heute
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="mt-4">
+                    <Link href="/appointments/new">Termin erstellen</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {todayAppointments.map((appointment) => {
+                    const startTime = format(new Date(appointment.startTime), 'HH:mm')
+                    const isNow = new Date() >= new Date(appointment.startTime) && 
+                                  new Date() <= new Date(appointment.endTime)
+                    
+                    return (
+                      <div 
+                        key={appointment.id} 
+                        className={`flex items-center gap-4 p-3 rounded-lg border transition-colors ${
+                          isNow ? 'bg-primary/5 border-primary' : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <div className="text-center min-w-[50px]">
+                          <div className="text-sm font-medium">{startTime}</div>
+                          {isNow && <Badge variant="default" className="text-xs mt-1">Jetzt</Badge>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{appointment.Customer?.name || 'Unbekannt'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {appointment.Service?.name} • {appointment.Employee?.name}
+                          </p>
+                        </div>
+                        <Badge variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}>
+                          {appointment.status === 'confirmed' ? 'Bestätigt' : 'Ausstehend'}
+                        </Badge>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Appointments */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Nächste Termine</CardTitle>
+              <CardDescription>Die nächsten 3 Tage</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {upcomingAppointments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Keine anstehenden Termine
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {todayAppointments.slice(0, 5).map((appointment) => (
-                    <div key={appointment.id} className="flex items-center space-x-4 rounded-lg border p-3">
-                      <div className="flex-shrink-0">
-                        <Clock className="h-10 w-10 rounded-full bg-primary/10 p-2 text-primary" />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium">
-                            {appointment.Customer?.name || 'Unbekannter Kunde'}
-                          </p>
-                          <Badge variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}>
-                            {appointment.status === 'confirmed' ? 'Bestätigt' : 'Ausstehend'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {appointment.Service?.name} • {appointment.Employee?.name}
+                  {upcomingAppointments.map((appointment) => (
+                    <div key={appointment.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">
+                          {appointment.Customer?.name} - {appointment.Service?.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(appointment.startTime), 'HH:mm')} - 
-                          {format(new Date(appointment.endTime), 'HH:mm')}
+                          {format(new Date(appointment.startTime), 'EEEE, d. MMM • HH:mm', { locale: de })}
                         </p>
                       </div>
+                      <Badge variant="outline" className="text-xs">
+                        {appointment.Employee?.name}
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -212,161 +289,91 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Revenue Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Umsatzübersicht</CardTitle>
-            <CardDescription>
-              Aktuelle Umsatzzahlen
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Heute</p>
-              <p className="text-2xl font-bold">CHF {revenueStats?.todayRevenue || 0}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Diese Woche</p>
-              <p className="text-xl font-semibold">CHF {revenueStats?.weekRevenue || 0}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Diesen Monat</p>
-              <p className="text-xl font-semibold">CHF {revenueStats?.monthRevenue || 0}</p>
-            </div>
-            <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground">Durchschn. Buchungswert</p>
-              <p className="text-lg font-semibold">CHF {revenueStats?.averageBookingValue || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Right Column - Quick Actions, Revenue, Activity */}
+        <div className="space-y-6">
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Schnellaktionen</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <Button asChild variant="outline" className="justify-start">
+                <Link href="/calendar">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Kalender öffnen
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="justify-start">
+                <Link href="/customers/new">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Kunde hinzufügen
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="justify-start">
+                <Link href="/reports">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Berichte anzeigen
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="justify-start">
+                <Link href="/services">
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  Services verwalten
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
 
-      {/* Quick Actions and Activity Feed */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Schnellaktionen</CardTitle>
-            <CardDescription>
-              Häufig verwendete Funktionen
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/appointments/new">
-                <Calendar className="mr-2 h-4 w-4" />
-                Neuen Termin erstellen
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/services/new">
-                <Briefcase className="mr-2 h-4 w-4" />
-                Service hinzufügen
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/employees/new">
-                <Users className="mr-2 h-4 w-4" />
-                Mitarbeiter hinzufügen
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link href="/calendar">
-                <Calendar className="mr-2 h-4 w-4" />
-                Kalender öffnen
-                {stats?.pendingAppointments > 0 && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {stats.pendingAppointments}
-                  </Badge>
-                )}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Revenue Summary */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Umsatz</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Diese Woche</span>
+                <span className="font-semibold">CHF {revenueStats?.weekRevenue || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Diesen Monat</span>
+                <span className="font-semibold">CHF {revenueStats?.monthRevenue || 0}</span>
+              </div>
+              <div className="pt-3 border-t">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Ø pro Termin</span>
+                  <span className="font-semibold">CHF {revenueStats?.averageBookingValue || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Letzte Aktivitäten</CardTitle>
-            <CardDescription>
-              Neue Buchungen und Änderungen
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Noch keine Aktivitäten
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-3 text-sm">
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {activity.Customer?.name || 'Unbekannt'}
-                      </p>
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Aktivitäten</CardTitle>
+              <CardDescription>Letzte Buchungen</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentActivity.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Noch keine Aktivitäten
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {recentActivity.map((activity) => (
+                    <div key={activity.id} className="text-sm">
+                      <p className="font-medium">{activity.Customer?.name || 'Unbekannt'}</p>
                       <p className="text-xs text-muted-foreground">
-                        {activity.Service?.name} • {format(new Date(activity.createdAt), 'dd.MM.yyyy HH:mm', { locale: de })}
+                        {activity.Service?.name} • {format(new Date(activity.createdAt), 'dd.MM. HH:mm')}
                       </p>
                     </div>
-                    <Badge variant={
-                      activity.status === 'confirmed' ? 'default' : 
-                      activity.status === 'pending' ? 'secondary' :
-                      activity.status === 'cancelled' ? 'destructive' : 'outline'
-                    } className="text-xs">
-                      {activity.status === 'confirmed' ? 'Bestätigt' :
-                       activity.status === 'pending' ? 'Ausstehend' :
-                       activity.status === 'cancelled' ? 'Storniert' :
-                       activity.status === 'completed' ? 'Abgeschlossen' : activity.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Upcoming Appointments */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Kommende Termine</CardTitle>
-            <CardDescription>
-              Nächste 7 Tage
-            </CardDescription>
-          </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/calendar">
-              Kalender anzeigen <ChevronRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {upcomingAppointments.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Keine kommenden Termine
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {upcomingAppointments.slice(0, 10).map((appointment) => (
-                <div key={appointment.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {appointment.Customer?.name} - {appointment.Service?.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(appointment.startTime), 'EEEE, d. MMMM • HH:mm', { locale: de })} Uhr
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="ml-2">
-                    {appointment.Employee?.name}
-                  </Badge>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

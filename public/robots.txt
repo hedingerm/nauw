@@ -1,0 +1,23 @@
+# Robots.txt for nauw.ch
+# Allow all crawlers to access public content
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /book/*/
+Disallow: /(business)/
+Disallow: /(auth)/
+Disallow: /test-booking
+
+# Sitemap location
+Sitemap: https://nauw.ch/sitemap.xml
+
+# Crawl-delay for responsible crawling
+Crawl-delay: 1
+
+# Block specific bots if needed
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Crawl-delay: 10

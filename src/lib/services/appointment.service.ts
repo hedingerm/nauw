@@ -619,4 +619,50 @@ export class AppointmentService {
       averageBookingValue: Math.round(averageBookingValue * 100) / 100
     }
   }
+
+  // Get appointment statistics for reports
+  static async getAppointmentStats(businessId: string, period: 'week' | 'month' | 'year'): Promise<{
+    total: number
+    completed: number
+    cancelled: number
+    pending: number
+  }> {
+    const supabase = await this.getClient()
+    
+    const now = new Date()
+    let startDate: Date
+    
+    switch (period) {
+      case 'week':
+        startDate = new Date(now)
+        startDate.setDate(startDate.getDate() - 7)
+        break
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        break
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1)
+        break
+    }
+    
+    const { data, error } = await supabase
+      .from('Appointment')
+      .select('status')
+      .eq('businessId', businessId)
+      .gte('startTime', startDate.toISOString())
+    
+    if (error || !data) {
+      console.error('Error fetching appointment stats:', error)
+      return { total: 0, completed: 0, cancelled: 0, pending: 0 }
+    }
+    
+    const stats = {
+      total: data.length,
+      completed: data.filter(a => a.status === 'completed').length,
+      cancelled: data.filter(a => a.status === 'cancelled').length,
+      pending: data.filter(a => a.status === 'pending').length,
+    }
+    
+    return stats
+  }
 }
