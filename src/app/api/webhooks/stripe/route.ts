@@ -253,18 +253,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       throw insertError
     }
 
-    if (newSubscription) {
-      // Update business with subscription ID
-      const { error: businessUpdateError } = await supabase
-        .from('Business')
-        .update({ subscription_id: newSubscription.id })
-        .eq('id', business.id)
-      
-      if (businessUpdateError) {
-        console.error('Error updating business with subscription ID:', businessUpdateError)
-        throw businessUpdateError
-      }
-    }
+    // No need to update business with subscription_id anymore
+    // The subscription can be found by querying Subscription table with business_id
   }
 }
 
@@ -387,25 +377,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
 // Handle customer updates (payment method changes, etc)
 async function handleCustomerUpdated(customer: Stripe.Customer) {
-  const supabase = createServiceRoleClient()
-  
-  // Update payment method info if available
-  const paymentMethod = customer.invoice_settings?.default_payment_method
-  let last4, brand
-  
-  if (paymentMethod && typeof paymentMethod === 'object' && 'card' in paymentMethod) {
-    last4 = paymentMethod.card?.last4
-    brand = paymentMethod.card?.brand
-  }
-
-  await supabase
-    .from('Business')
-    .update({
-      billing_email: customer.email,
-      payment_method_last4: last4,
-      payment_method_brand: brand
-    })
-    .eq('stripe_customer_id', customer.id)
+  // Currently no fields to update since we removed redundant fields
+  // Keep this handler in case we need to track customer updates in the future
+  console.log('Customer updated:', {
+    customerId: customer.id,
+    email: customer.email
+  })
 }
 
 // Handle completed checkout sessions

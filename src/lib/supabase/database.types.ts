@@ -143,7 +143,6 @@ export type Database = {
         Row: {
           acceptAppointmentsAutomatically: boolean
           address: string
-          billing_email: string | null
           businessHours: Json
           city: string
           country: string
@@ -153,13 +152,9 @@ export type Database = {
           id: string
           isActive: boolean
           name: string
-          payment_method_brand: string | null
-          payment_method_last4: string | null
           phone: string
           postalCode: string
           stripe_customer_id: string | null
-          subscription_id: string | null
-          trial_ends_at: string | null
           type: string
           updatedAt: string
           urlSlug: string
@@ -168,7 +163,6 @@ export type Database = {
         Insert: {
           acceptAppointmentsAutomatically?: boolean
           address: string
-          billing_email?: string | null
           businessHours: Json
           city: string
           country?: string
@@ -178,13 +172,9 @@ export type Database = {
           id?: string
           isActive?: boolean
           name: string
-          payment_method_brand?: string | null
-          payment_method_last4?: string | null
           phone: string
           postalCode: string
           stripe_customer_id?: string | null
-          subscription_id?: string | null
-          trial_ends_at?: string | null
           type: string
           updatedAt?: string
           urlSlug: string
@@ -193,7 +183,6 @@ export type Database = {
         Update: {
           acceptAppointmentsAutomatically?: boolean
           address?: string
-          billing_email?: string | null
           businessHours?: Json
           city?: string
           country?: string
@@ -203,27 +192,15 @@ export type Database = {
           id?: string
           isActive?: boolean
           name?: string
-          payment_method_brand?: string | null
-          payment_method_last4?: string | null
           phone?: string
           postalCode?: string
           stripe_customer_id?: string | null
-          subscription_id?: string | null
-          trial_ends_at?: string | null
           type?: string
           updatedAt?: string
           urlSlug?: string
           userId?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "Business_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "Subscription"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       Customer: {
         Row: {

@@ -75,7 +75,7 @@ export class NotificationService {
 
       // Send the notification
       await this.sendEmail({
-        to: business.billing_email || business.email,
+        to: business.email,
         subject,
         content,
         businessId,
@@ -228,7 +228,7 @@ export class NotificationService {
       if (!business) return
 
       await this.sendEmail({
-        to: business.billing_email || business.email,
+        to: business.email,
         subject: "❌ Zahlung fehlgeschlagen",
         content: `
           <h2>Ihre Zahlung konnte nicht verarbeitet werden</h2>
