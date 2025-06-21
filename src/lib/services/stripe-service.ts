@@ -45,6 +45,13 @@ export class StripeService {
     metadata = {},
     billingCycle = 'monthly'
   }: CreateCheckoutSessionParams): Promise<Stripe.Checkout.Session> {
+    console.log('Creating checkout session with:', {
+      businessId,
+      customerId,
+      priceId,
+      billingCycle
+    })
+    
     // Add business ID to metadata
     const sessionMetadata = {
       ...metadata,
@@ -52,28 +59,36 @@ export class StripeService {
       billing_cycle: billingCycle
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [{
-        price: priceId,
-        quantity: 1
-      }],
-      mode: 'subscription',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: sessionMetadata,
-      subscription_data: {
-        metadata: sessionMetadata
-      },
-      locale: 'de',
-      payment_method_collection: 'if_required',
-      customer_update: {
-        address: 'auto'
-      }
-    })
+    try {
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price: priceId,
+          quantity: 1
+        }],
+        mode: 'subscription',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: sessionMetadata,
+        subscription_data: {
+          metadata: sessionMetadata
+        },
+        locale: 'de',
+        payment_method_collection: 'if_required',
+        customer_update: {
+          address: 'auto'
+        }
+      })
 
-    return session
+      return session
+    } catch (error) {
+      console.error('Stripe checkout session error:', error)
+      if (error instanceof Stripe.errors.StripeError) {
+        throw new Error(`Stripe error: ${error.message}`)
+      }
+      throw error
+    }
   }
 
   // Create a checkout session for booster pack

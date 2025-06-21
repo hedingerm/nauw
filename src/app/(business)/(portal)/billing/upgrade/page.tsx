@@ -12,6 +12,7 @@ import { SubscriptionService, SubscriptionPlan } from "@/src/lib/services/subscr
 import { createClient } from "@/src/lib/supabase/client"
 import { formatCurrency } from "@/src/lib/utils"
 import { Alert, AlertDescription } from "@/src/components/ui/alert"
+import { toast } from "sonner"
 
 export default function UpgradePage() {
   const router = useRouter()
@@ -95,9 +96,16 @@ export default function UpgradePage() {
         })
       })
 
-      const { url } = await response.json()
-      if (url) {
-        window.location.href = url
+      const data = await response.json()
+      
+      if (!response.ok) {
+        console.error("Checkout error:", data)
+        toast.error(data.details || "Fehler beim Erstellen der Checkout-Sitzung")
+        return
+      }
+      
+      if (data.url) {
+        window.location.href = data.url
       }
     } catch (error) {
       console.error("Error creating checkout session:", error)
