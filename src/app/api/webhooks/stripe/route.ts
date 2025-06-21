@@ -1,0 +1,314 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
+import type Stripe from 'stripe'
+import { stripe, webhookSecret } from '@/src/lib/stripe/config'
+import { SubscriptionService } from '@/src/lib/services/subscription-service'
+import { BillingService } from '@/src/lib/services/billing-service'
+import { createClient } from '@/src/lib/supabase/server'
+
+export async function POST(request: NextRequest) {
+  const body = await request.text()
+  const headersList = await headers()
+  const signature = headersList.get('stripe-signature')!
+
+  let event: Stripe.Event
+
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err)
+    return NextResponse.json(
+      { error: 'Invalid signature' },
+      { status: 400 }
+    )
+  }
+
+  // Initialize Supabase client with service role for admin operations
+  const supabase = await createClient()
+
+  try {
+    switch (event.type) {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription
+        await handleSubscriptionUpdate(subscription)
+        break
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+        await handleSubscriptionDeleted(subscription)
+        break
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice
+        await handleInvoicePaymentSucceeded(invoice)
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice
+        await handleInvoicePaymentFailed(invoice)
+        break
+      }
+
+      case 'customer.updated': {
+        const customer = event.data.object as Stripe.Customer
+        await handleCustomerUpdated(customer)
+        break
+      }
+
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        await handleCheckoutCompleted(session)
+        break
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`)
+    }
+
+    return NextResponse.json({ received: true }, { status: 200 })
+  } catch (error) {
+    console.error('Webhook handler error:', error)
+    return NextResponse.json(
+      { error: 'Webhook handler failed' },
+      { status: 500 }
+    )
+  }
+}
+
+// Handle subscription create/update
+async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+  const supabase = await createClient()
+  
+  // Find business by Stripe customer ID
+  const { data: business, error: businessError } = await supabase
+    .from('Business')
+    .select('id')
+    .eq('stripe_customer_id', subscription.customer)
+    .single()
+
+  if (businessError || !business) {
+    console.error('Business not found for customer:', subscription.customer)
+    return
+  }
+
+  // Get the price ID to find the plan
+  const priceId = subscription.items.data[0]?.price.id
+  const billingCycle = subscription.items.data[0]?.price.recurring?.interval === 'year' ? 'annual' : 'monthly'
+  
+  // Find the subscription plan by price ID
+  const { data: plan, error: planError } = await supabase
+    .from('SubscriptionPlan')
+    .select('id')
+    .eq(billingCycle === 'annual' ? 'stripe_price_annual_id' : 'stripe_price_monthly_id', priceId)
+    .single()
+
+  if (planError || !plan) {
+    console.error('Plan not found for price:', priceId)
+    return
+  }
+
+  // Check if subscription already exists
+  const { data: existingSubscription } = await supabase
+    .from('Subscription')
+    .select('id')
+    .eq('stripe_subscription_id', subscription.id)
+    .single()
+
+  const subscriptionData = {
+    business_id: business.id,
+    plan_id: plan.id,
+    stripe_subscription_id: subscription.id,
+    stripe_customer_id: subscription.customer as string,
+    status: subscription.status,
+    billing_cycle: billingCycle,
+    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+    trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+    metadata: subscription.metadata || {}
+  }
+
+  if (existingSubscription) {
+    // Update existing subscription
+    await supabase
+      .from('Subscription')
+      .update(subscriptionData)
+      .eq('id', existingSubscription.id)
+  } else {
+    // Create new subscription
+    const { data: newSubscription } = await supabase
+      .from('Subscription')
+      .insert(subscriptionData)
+      .select()
+      .single()
+
+    if (newSubscription) {
+      // Update business with subscription ID
+      await supabase
+        .from('Business')
+        .update({ subscription_id: newSubscription.id })
+        .eq('id', business.id)
+    }
+  }
+}
+
+// Handle subscription deletion/cancellation
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const supabase = await createClient()
+  
+  await supabase
+    .from('Subscription')
+    .update({
+      status: 'canceled',
+      canceled_at: new Date().toISOString()
+    })
+    .eq('stripe_subscription_id', subscription.id)
+}
+
+// Handle successful invoice payment
+async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+  const supabase = await createClient()
+  
+  // Find business
+  const { data: business } = await supabase
+    .from('Business')
+    .select('id')
+    .eq('stripe_customer_id', invoice.customer)
+    .single()
+
+  if (!business) return
+
+  // Create or update invoice record
+  const invoiceData = {
+    business_id: business.id,
+    stripe_invoice_id: invoice.id,
+    invoice_number: invoice.number || `INV-${Date.now()}`,
+    status: 'paid',
+    amount_total: (invoice.amount_paid / 100), // Convert from cents to CHF
+    amount_paid: (invoice.amount_paid / 100),
+    currency: invoice.currency.toUpperCase(),
+    period_start: new Date(invoice.period_start * 1000).toISOString(),
+    period_end: new Date(invoice.period_end * 1000).toISOString(),
+    paid_at: new Date().toISOString(),
+    payment_method_type: (invoice as any).payment_intent ? 'card' : 'other',
+    line_items: invoice.lines.data.map((line: any) => ({
+      description: line.description || '',
+      quantity: line.quantity || 1,
+      unit_price: line.unit_amount ? line.unit_amount / 100 : 0,
+      amount: line.amount / 100
+    })),
+    metadata: invoice.metadata || {}
+  }
+
+  // Check if invoice exists
+  const { data: existingInvoice } = await supabase
+    .from('Invoice')
+    .select('id')
+    .eq('stripe_invoice_id', invoice.id)
+    .single()
+
+  if (existingInvoice) {
+    await supabase
+      .from('Invoice')
+      .update(invoiceData)
+      .eq('id', existingInvoice.id)
+  } else {
+    await supabase
+      .from('Invoice')
+      .insert(invoiceData)
+  }
+
+  // Update subscription period if this is a subscription invoice
+  if ((invoice as any).subscription) {
+    const { data: subscription } = await supabase
+      .from('Subscription')
+      .select('id')
+      .eq('stripe_subscription_id', (invoice as any).subscription)
+      .single()
+
+    if (subscription) {
+      await supabase
+        .from('Subscription')
+        .update({
+          current_period_start: new Date(invoice.period_start * 1000).toISOString(),
+          current_period_end: new Date(invoice.period_end * 1000).toISOString(),
+          status: 'active'
+        })
+        .eq('id', subscription.id)
+    }
+  }
+}
+
+// Handle failed invoice payment
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  const supabase = await createClient()
+  
+  // Update subscription status to past_due
+  if ((invoice as any).subscription) {
+    await supabase
+      .from('Subscription')
+      .update({ status: 'past_due' })
+      .eq('stripe_subscription_id', (invoice as any).subscription)
+  }
+
+  // Find business and send notification
+  const { data: business } = await supabase
+    .from('Business')
+    .select('id')
+    .eq('stripe_customer_id', invoice.customer)
+    .single()
+
+  if (business) {
+    const { NotificationService } = await import('@/src/lib/services/notification-service')
+    await NotificationService.sendPaymentFailedNotification(
+      business.id,
+      (invoice.amount_due || 0) / 100 // Convert from cents to CHF
+    )
+  }
+
+  console.log('Payment failed for invoice:', invoice.id)
+}
+
+// Handle customer updates (payment method changes, etc)
+async function handleCustomerUpdated(customer: Stripe.Customer) {
+  const supabase = await createClient()
+  
+  // Update payment method info if available
+  const paymentMethod = customer.invoice_settings?.default_payment_method
+  let last4, brand
+  
+  if (paymentMethod && typeof paymentMethod === 'object' && 'card' in paymentMethod) {
+    last4 = paymentMethod.card?.last4
+    brand = paymentMethod.card?.brand
+  }
+
+  await supabase
+    .from('Business')
+    .update({
+      billing_email: customer.email,
+      payment_method_last4: last4,
+      payment_method_brand: brand
+    })
+    .eq('stripe_customer_id', customer.id)
+}
+
+// Handle completed checkout sessions
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  // This would be used for initial subscription setup
+  // The subscription.created event will handle the actual subscription creation
+  console.log('Checkout completed:', session.id)
+  
+  // If this is a booster pack purchase, add the credits
+  if (session.metadata?.type === 'booster_pack' && session.metadata?.business_id) {
+    const { UsageService } = await import('@/src/lib/services/usage-service')
+    await UsageService.addBoosterPack(
+      session.metadata.business_id,
+      parseInt(session.metadata.amount || '50')
+    )
+  }
+}

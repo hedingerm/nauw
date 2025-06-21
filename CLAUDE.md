@@ -51,6 +51,18 @@ Create a `.env.local` file with the following variables:
 NEXT_PUBLIC_SUPABASE_URL="https://[project-ref].supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="[anon-key]"
 SUPABASE_SERVICE_ROLE_KEY="[service-role-key]"
+
+# Stripe
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+```
+
+Create a `.env` file with the following variables:
+
+```env
+# App URL for Stripe redirects
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
 ## WSL Development Note

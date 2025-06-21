@@ -50,7 +50,11 @@
       "mcp__github__list_issues",
       "mcp__puppeteer__puppeteer_navigate",
       "mcp__github__get_issue",
-      "mcp__github__update_issue"
+      "mcp__github__update_issue",
+      "Bash(sed:*)",
+      "Bash(bash:*)",
+      "WebFetch(domain:resend.com)",
+      "Bash(npx supabase functions deploy:*)"
     ]
   },
   "enableAllProjectMcpServers": false

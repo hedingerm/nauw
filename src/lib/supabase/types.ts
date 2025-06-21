@@ -23,7 +23,6 @@ export interface Database {
           country: string
           description: string | null
           businessHours: Json
-          subscriptionTier: string
           isActive: boolean
           createdAt: string
           updatedAt: string
@@ -40,7 +39,6 @@ export interface Database {
           country?: string
           description?: string | null
           businessHours: Json
-          subscriptionTier?: string
           isActive?: boolean
           createdAt?: string
           updatedAt?: string
@@ -57,7 +55,6 @@ export interface Database {
           country?: string
           description?: string | null
           businessHours?: Json
-          subscriptionTier?: string
           isActive?: boolean
           createdAt?: string
           updatedAt?: string

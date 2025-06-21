@@ -15,6 +15,8 @@ import {
 import { CustomerService } from './customer.service'
 import { ServiceService } from './service.service'
 import { BusinessService } from './business.service'
+import { SubscriptionService } from './subscription-service'
+import { UsageService } from './usage-service'
 import { z } from 'zod'
 
 type Appointment = Database['public']['Tables']['Appointment']['Row']
@@ -153,6 +155,12 @@ export class AppointmentService {
     // Validate input
     const validatedData = createAppointmentSchema.parse(data)
     
+    // Check subscription quota before creating appointment
+    const canBook = await SubscriptionService.canMakeBooking(businessId)
+    if (!canBook.allowed) {
+      throw new Error(canBook.reason || 'Buchungskontingent erschöpft')
+    }
+    
     // Get service details for duration
     const service = await ServiceService.getById(validatedData.serviceId)
     
@@ -206,6 +214,23 @@ export class AppointmentService {
     if (error) {
       console.error('Error creating appointment:', error)
       throw new Error('Fehler beim Erstellen des Termins')
+    }
+
+    // Log usage for confirmed appointments
+    if (appointment.status === 'confirmed') {
+      try {
+        await UsageService.logBooking(businessId, appointment.id, service.name)
+        
+        // Check if we need to send usage alerts
+        const { NotificationService } = await import('./notification-service')
+        const usage = await UsageService.getUsagePercentage(businessId)
+        if (!usage.isUnlimited && usage.percentage >= 80) {
+          await NotificationService.sendUsageAlert(businessId, usage.percentage)
+        }
+      } catch (usageError) {
+        console.error('Error logging usage:', usageError)
+        // Don't fail the appointment creation if usage logging fails
+      }
     }
 
     return appointment
@@ -318,6 +343,9 @@ export class AppointmentService {
       }
     }
     
+    // Get current appointment to check status changes
+    const currentAppointment = await this.getById(id)
+    
     const { data: appointment, error } = await supabase
       .from('Appointment')
       .update(updateData)
@@ -328,6 +356,32 @@ export class AppointmentService {
     if (error) {
       console.error('Error updating appointment:', error)
       throw new Error('Fehler beim Aktualisieren des Termins')
+    }
+
+    // Log usage if appointment is being confirmed
+    if (currentAppointment.status !== 'confirmed' && appointment.status === 'confirmed') {
+      try {
+        const service = await ServiceService.getById(appointment.serviceId)
+        await UsageService.logBooking(currentAppointment.businessId, appointment.id, service.name)
+        
+        // Check if we need to send usage alerts
+        const { NotificationService } = await import('./notification-service')
+        const usage = await UsageService.getUsagePercentage(currentAppointment.businessId)
+        if (!usage.isUnlimited && usage.percentage >= 80) {
+          await NotificationService.sendUsageAlert(currentAppointment.businessId, usage.percentage)
+        }
+      } catch (usageError) {
+        console.error('Error logging usage:', usageError)
+      }
+    }
+    
+    // Remove usage if appointment is being cancelled
+    if (currentAppointment.status === 'confirmed' && appointment.status === 'cancelled') {
+      try {
+        await UsageService.removeBookingUsage(appointment.id)
+      } catch (usageError) {
+        console.error('Error removing usage:', usageError)
+      }
     }
 
     return appointment

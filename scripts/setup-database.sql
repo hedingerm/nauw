@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS "Business" (
   "country" TEXT NOT NULL DEFAULT 'Deutschland',
   "description" TEXT,
   "businessHours" JSONB NOT NULL,
-  "subscriptionTier" TEXT NOT NULL DEFAULT 'basic',
   "isActive" BOOLEAN NOT NULL DEFAULT true,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

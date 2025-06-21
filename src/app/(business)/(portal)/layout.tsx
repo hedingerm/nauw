@@ -20,10 +20,12 @@ import {
   ChevronDown,
   ChevronRight,
   Building2,
-  Wrench
+  Wrench,
+  CreditCard
 } from 'lucide-react'
 import { cn } from '@/src/lib/utils/cn'
 import { BusinessService } from '@/src/lib/services/business.service'
+import { NotificationBell } from '@/src/components/features/notifications/notification-bell'
 
 interface NavItem {
   name: string
@@ -64,6 +66,7 @@ const baseNavigation: NavItem[] = [
     isGroup: true,
     children: [
       { name: 'Buchungsseite', href: '/booking-design', icon: Palette },
+      { name: 'Abrechnung', href: '/billing', icon: CreditCard },
       { name: 'Einstellungen', href: '/settings', icon: Settings },
     ]
   },
@@ -283,8 +286,9 @@ export default function BusinessPortalLayout({
         </nav>
         
         <div className="border-t p-4">
-          <div className="mb-3 px-3">
+          <div className="mb-3 px-3 flex items-center justify-between">
             <p className="text-sm font-medium">{user.email}</p>
+            {business && <NotificationBell businessId={business.id} />}
           </div>
           <Button
             variant="outline"
