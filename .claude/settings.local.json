@@ -67,7 +67,11 @@
       "Bash(npx depcheck:*)",
       "Bash(rg:*)",
       "Bash(awk:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(grep:*)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(git log:*)",
+      "Bash(timeout 10s npm run dev)"
     ]
   },
   "enableAllProjectMcpServers": false

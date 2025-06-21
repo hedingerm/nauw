@@ -402,9 +402,9 @@ export class BookingPageConfigService {
         --text: ${theme.textColor};
         --radius: ${
           theme.borderRadius === 'none' ? '0' :
-          theme.borderRadius === 'small' ? '0.25rem' :
-          theme.borderRadius === 'medium' ? '0.5rem' :
-          '1rem'
+          theme.borderRadius === 'small' ? '0.125rem' :
+          theme.borderRadius === 'medium' ? '0.375rem' :
+          '0.5rem'
         };
       }
       
@@ -412,6 +412,26 @@ export class BookingPageConfigService {
         font-family: ${theme.fontFamily}, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         background-color: var(--background);
         color: var(--text);
+      }
+      
+      .border-primary {
+        border-color: ${theme.primaryColor} !important;
+      }
+      
+      .bg-primary {
+        background-color: ${theme.primaryColor} !important;
+      }
+      
+      .text-primary {
+        color: ${theme.primaryColor} !important;
+      }
+      
+      .ring-primary {
+        --tw-ring-color: ${theme.primaryColor} !important;
+      }
+      
+      .bg-primary\\/10 {
+        background-color: ${theme.primaryColor}1a !important;
       }
       
       ${theme.darkMode ? `

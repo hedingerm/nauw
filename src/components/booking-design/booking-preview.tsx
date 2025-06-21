@@ -8,8 +8,8 @@ import { format, addDays, isSameDay } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { 
   Check, MapPin, Phone, Mail, Clock, ChevronLeft, ChevronRight, 
-  ChevronDown, ChevronUp, Tag, Layers, Facebook, Instagram, Twitter, 
-  Linkedin, Youtube, Globe, Music2 
+  ChevronDown, ChevronUp, Tag, Facebook, Instagram, Twitter, 
+  Linkedin, Youtube, Globe, Music2, Calendar, User, ShoppingBag
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card'
 import { Button } from '@/src/components/ui/button'
@@ -26,7 +26,14 @@ interface BookingPreviewProps {
   compact?: boolean
 }
 
-type PreviewStep = 'service' | 'datetime' | 'customer' | 'confirmation'
+type PreviewStep = 'service' | 'datetime' | 'customer'
+
+interface Step {
+  id: PreviewStep
+  number: string
+  label: string
+  icon: React.ReactNode
+}
 
 const socialIcons = {
   facebook: Facebook,
@@ -62,6 +69,7 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
     new Set(config.layout.categoriesExpanded ? mockCategories.map(c => c.id) : [])
   )
   const [weekOffset, setWeekOffset] = useState(0)
+  const [bookingConfirmed, setBookingConfirmed] = useState(false)
 
   const deviceClasses = {
     desktop: 'w-full',
@@ -261,6 +269,202 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
     }
   }
 
+  const renderStepIndicator = () => {
+    const steps: Step[] = [
+      { id: 'service', number: '1', label: 'Service', icon: <ShoppingBag className="h-4 w-4" /> },
+      { id: 'datetime', number: '2', label: 'Termin', icon: <Calendar className="h-4 w-4" /> },
+      { id: 'customer', number: '3', label: 'Kontakt', icon: <User className="h-4 w-4" /> }
+    ]
+
+    const getStepState = (stepId: PreviewStep) => {
+      const stepIndex = steps.findIndex(s => s.id === stepId)
+      const currentIndex = steps.findIndex(s => s.id === currentStep)
+      
+      if (bookingConfirmed || currentIndex > stepIndex) {
+        return 'completed'
+      } else if (currentIndex === stepIndex) {
+        return 'active'
+      } else {
+        return 'inactive'
+      }
+    }
+
+    const primaryColor = config?.theme.primaryColor || '#2563eb'
+
+    return (
+      <div className={cn("px-4", compact ? "mb-4" : "mb-8")}>
+        {/* Mobile view - simplified */}
+        <div className="flex items-center justify-between sm:hidden">
+          {steps.map((step, index) => {
+            const state = getStepState(step.id)
+            const isLast = index === steps.length - 1
+            
+            return (
+              <div key={step.id} className="flex items-center flex-1">
+                <div className="flex flex-col items-center">
+                  <div 
+                    className={cn(
+                      "rounded-full h-10 w-10 flex items-center justify-center transition-all duration-300",
+                      state === 'completed' && "bg-primary text-white shadow-lg",
+                      state === 'active' && "bg-primary/10 text-primary ring-2 ring-primary ring-offset-2",
+                      state === 'inactive' && "bg-gray-100 text-gray-400"
+                    )}
+                    style={{
+                      backgroundColor: state === 'completed' ? primaryColor : 
+                                     state === 'active' ? `${primaryColor}1a` : undefined,
+                      color: state === 'completed' ? 'white' : 
+                            state === 'active' ? primaryColor : undefined,
+                      borderColor: state === 'active' ? primaryColor : undefined
+                    }}
+                  >
+                    {state === 'completed' ? (
+                      <Check className="h-5 w-5" />
+                    ) : (
+                      step.icon
+                    )}
+                  </div>
+                  <span 
+                    className={cn(
+                      "text-xs mt-1 font-medium",
+                      state === 'active' && "text-primary",
+                      state === 'inactive' && "text-gray-400"
+                    )}
+                    style={{
+                      color: state === 'active' ? primaryColor : undefined
+                    }}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+                
+                {!isLast && (
+                  <div 
+                    className={cn(
+                      "flex-1 h-0.5 -mt-4 mx-1 transition-all duration-300",
+                      state === 'completed' && "bg-primary",
+                      state !== 'completed' && "bg-gray-200"
+                    )}
+                    style={{
+                      backgroundColor: state === 'completed' ? primaryColor : undefined
+                    }}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Desktop view - enhanced */}
+        <div className="hidden sm:flex items-center justify-center">
+          <div className="flex items-center">
+            {steps.map((step, index) => {
+              const state = getStepState(step.id)
+              const isLast = index === steps.length - 1
+              
+              return (
+                <div key={step.id} className="flex items-center">
+                  <div className="relative flex flex-col items-center">
+                    {/* Step circle with icon */}
+                    <div 
+                      className={cn(
+                        "rounded-full h-12 w-12 flex items-center justify-center transition-all duration-300 relative",
+                        state === 'completed' && "bg-primary text-white shadow-lg scale-105",
+                        state === 'active' && "bg-primary/10 text-primary ring-2 ring-primary ring-offset-2 scale-110",
+                        state === 'inactive' && "bg-gray-100 text-gray-400 border-2 border-gray-200"
+                      )}
+                      style={{
+                        backgroundColor: state === 'completed' ? primaryColor : 
+                                       state === 'active' ? `${primaryColor}1a` : undefined,
+                        color: state === 'completed' ? 'white' : 
+                              state === 'active' ? primaryColor : undefined,
+                        borderColor: state === 'active' ? primaryColor : undefined
+                      }}
+                    >
+                      {state === 'completed' ? (
+                        <Check className="h-6 w-6" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center">
+                          {step.icon}
+                        </div>
+                      )}
+                      
+                      {/* Active pulse animation */}
+                      {state === 'active' && (
+                        <div 
+                          className="absolute inset-0 rounded-full animate-ping"
+                          style={{
+                            backgroundColor: `${primaryColor}20`
+                          }}
+                        />
+                      )}
+                    </div>
+                    
+                    {/* Step label */}
+                    <div className="mt-2 text-center">
+                      <span 
+                        className={cn(
+                          "text-sm font-semibold block",
+                          state === 'active' && "text-primary",
+                          state === 'completed' && "text-gray-700",
+                          state === 'inactive' && "text-gray-400"
+                        )}
+                        style={{
+                          color: state === 'active' ? primaryColor : undefined
+                        }}
+                      >
+                        {step.label}
+                      </span>
+                      <span 
+                        className={cn(
+                          "text-xs",
+                          state === 'active' && "text-primary/70",
+                          state === 'completed' && "text-gray-500",
+                          state === 'inactive' && "text-gray-400"
+                        )}
+                        style={{
+                          color: state === 'active' ? `${primaryColor}b3` : undefined
+                        }}
+                      >
+                        Schritt {step.number}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Connector line */}
+                  {!isLast && (
+                    <div className="w-16 lg:w-24 px-2">
+                      <div 
+                        className={cn(
+                          "h-1 rounded-full transition-all duration-500",
+                          getStepState(steps[index + 1].id) !== 'inactive' && "bg-primary",
+                          getStepState(steps[index + 1].id) === 'inactive' && "bg-gray-200"
+                        )}
+                        style={{
+                          backgroundColor: getStepState(steps[index + 1].id) !== 'inactive' ? primaryColor : undefined
+                        }}
+                      >
+                        {/* Progress animation for active transitions */}
+                        {state === 'completed' && getStepState(steps[index + 1].id) === 'active' && (
+                          <div 
+                            className="h-full rounded-full animate-pulse"
+                            style={{
+                              backgroundColor: primaryColor,
+                              opacity: 0.6
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={cn(
       "bg-white rounded-lg overflow-hidden",
@@ -331,108 +535,14 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
             )}
           </div>
 
-          {/* Progress Steps */}
-          <div className={cn("px-4", compact ? "mb-4" : "mb-8")}>
-            <div className={cn("flex items-center justify-center", compact ? "space-x-1" : "space-x-2 sm:space-x-4")}>
-              {/* Step 1: Service */}
-              <div className="flex items-center">
-                <div 
-                  className={cn(
-                    "rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                    compact ? "h-6 w-6" : "h-8 w-8"
-                  )}
-                  style={{
-                    borderColor: ['service', 'datetime', 'customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : '#e5e7eb',
-                    backgroundColor: ['service', 'datetime', 'customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : 'transparent',
-                    color: ['service', 'datetime', 'customer', 'confirmation'].includes(currentStep) ? 'white' : currentStep === 'service' ? config.theme.primaryColor : '#9ca3af'
-                  }}
-                >
-                  {['datetime', 'customer', 'confirmation'].includes(currentStep) ? <Check className={compact ? "h-3 w-3" : "h-4 w-4"} /> : <span className={compact ? "text-xs" : ""}>1</span>}
-                </div>
-                <span className="ml-2 hidden sm:inline font-medium" style={{ 
-                  color: currentStep === 'service' ? config.theme.primaryColor : '#6b7280' 
-                }}>Service</span>
-              </div>
-              
-              <div className={cn("flex-1 h-0.5", compact ? "max-w-[2rem]" : "max-w-[4rem]")} style={{ 
-                backgroundColor: ['datetime', 'customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : '#e5e7eb' 
-              }} />
-              
-              {/* Step 2: DateTime */}
-              <div className="flex items-center">
-                <div 
-                  className={cn(
-                    "rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                    compact ? "h-6 w-6" : "h-8 w-8"
-                  )}
-                  style={{
-                    borderColor: ['datetime', 'customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : currentStep === 'datetime' ? config.theme.primaryColor : '#e5e7eb',
-                    backgroundColor: ['datetime', 'customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : 'transparent',
-                    color: ['datetime', 'customer', 'confirmation'].includes(currentStep) ? 'white' : currentStep === 'datetime' ? config.theme.primaryColor : '#9ca3af'
-                  }}
-                >
-                  {['customer', 'confirmation'].includes(currentStep) ? <Check className={compact ? "h-3 w-3" : "h-4 w-4"} /> : <span className={compact ? "text-xs" : ""}>2</span>}
-                </div>
-                <span className="ml-2 hidden sm:inline font-medium" style={{ 
-                  color: currentStep === 'datetime' ? config.theme.primaryColor : '#6b7280' 
-                }}>Termin</span>
-              </div>
-              
-              <div className={cn("flex-1 h-0.5", compact ? "max-w-[2rem]" : "max-w-[4rem]")} style={{ 
-                backgroundColor: ['customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : '#e5e7eb' 
-              }} />
-              
-              {/* Step 3: Customer */}
-              <div className="flex items-center">
-                <div 
-                  className={cn(
-                    "rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                    compact ? "h-6 w-6" : "h-8 w-8"
-                  )}
-                  style={{
-                    borderColor: ['customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : currentStep === 'customer' ? config.theme.primaryColor : '#e5e7eb',
-                    backgroundColor: ['customer', 'confirmation'].includes(currentStep) ? config.theme.primaryColor : 'transparent',
-                    color: ['customer', 'confirmation'].includes(currentStep) ? 'white' : currentStep === 'customer' ? config.theme.primaryColor : '#9ca3af'
-                  }}
-                >
-                  {currentStep === 'confirmation' ? <Check className={compact ? "h-3 w-3" : "h-4 w-4"} /> : <span className={compact ? "text-xs" : ""}>3</span>}
-                </div>
-                <span className="ml-2 hidden sm:inline font-medium" style={{ 
-                  color: currentStep === 'customer' ? config.theme.primaryColor : '#6b7280' 
-                }}>Kontakt</span>
-              </div>
-              
-              <div className={cn("flex-1 h-0.5", compact ? "max-w-[2rem]" : "max-w-[4rem]")} style={{ 
-                backgroundColor: currentStep === 'confirmation' ? config.theme.primaryColor : '#e5e7eb' 
-              }} />
-              
-              {/* Step 4: Confirmation */}
-              <div className="flex items-center">
-                <div 
-                  className={cn(
-                    "rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                    compact ? "h-6 w-6" : "h-8 w-8"
-                  )}
-                  style={{
-                    borderColor: currentStep === 'confirmation' ? config.theme.primaryColor : '#e5e7eb',
-                    backgroundColor: currentStep === 'confirmation' ? config.theme.primaryColor : 'transparent',
-                    color: currentStep === 'confirmation' ? 'white' : '#9ca3af'
-                  }}
-                >
-                  {currentStep === 'confirmation' ? <Check className={compact ? "h-3 w-3" : "h-4 w-4"} /> : <span className={compact ? "text-xs" : ""}>4</span>}
-                </div>
-                <span className="ml-2 hidden sm:inline font-medium" style={{ 
-                  color: currentStep === 'confirmation' ? config.theme.primaryColor : '#6b7280' 
-                }}>Bestätigung</span>
-              </div>
-            </div>
-          </div>
+          {/* Progress Steps - New Design */}
+          {renderStepIndicator()}
 
           {/* Step Content */}
           <Card>
             <CardContent className="p-6">
               {/* Service Selection */}
-              {currentStep === 'service' && (
+              {!bookingConfirmed && currentStep === 'service' && (
                 <div>
                   <CardHeader className="px-0 pt-0">
                     <CardTitle>Service auswählen</CardTitle>
@@ -592,7 +702,7 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
               )}
 
               {/* Date & Time Selection */}
-              {currentStep === 'datetime' && selectedService && (
+              {!bookingConfirmed && currentStep === 'datetime' && selectedService && (
                 <div>
                   <CardHeader className="px-0 pt-0">
                     <CardTitle>Termin auswählen</CardTitle>
@@ -667,7 +777,7 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
               )}
 
               {/* Customer Information */}
-              {currentStep === 'customer' && (
+              {!bookingConfirmed && currentStep === 'customer' && (
                 <div>
                   <CardHeader className="px-0 pt-0">
                     <CardTitle>Ihre Kontaktdaten</CardTitle>
@@ -754,7 +864,7 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
               )}
 
               {/* Confirmation */}
-              {currentStep === 'confirmation' && (
+              {bookingConfirmed && (
                 <div className="text-center py-8">
                   <div className="mb-6">
                     <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -806,6 +916,13 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
                     className="mt-6"
                     size="lg"
                     style={{ backgroundColor: config.theme.primaryColor }}
+                    onClick={() => {
+                      setCurrentStep('service')
+                      setSelectedService(null)
+                      setSelectedDate(undefined)
+                      setSelectedTime(null)
+                      setBookingConfirmed(false)
+                    }}
                   >
                     Neue Buchung
                   </Button>
@@ -815,7 +932,7 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
           </Card>
 
           {/* Navigation Buttons */}
-          {currentStep !== 'confirmation' && (
+          {!bookingConfirmed && (
             <div className="flex justify-between mt-8">
               <Button
                 variant="outline"
@@ -846,7 +963,7 @@ export function BookingPreview({ config, business, device, compact = false }: Bo
                       if (selectedDate && selectedTime) setCurrentStep('customer')
                       break
                     case 'customer':
-                      setCurrentStep('confirmation')
+                      setBookingConfirmed(true)
                       break
                   }
                 }}
