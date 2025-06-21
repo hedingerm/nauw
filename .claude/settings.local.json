@@ -54,7 +54,8 @@
       "Bash(sed:*)",
       "Bash(bash:*)",
       "WebFetch(domain:resend.com)",
-      "Bash(npx supabase functions deploy:*)"
+      "Bash(npx supabase functions deploy:*)",
+      "mcp__MCP_SUPABASE__get_logs"
     ]
   },
   "enableAllProjectMcpServers": false
