@@ -413,4 +413,49 @@ export class ScheduleExceptionService {
 
     return data || []
   }
+
+  // Get consolidated exceptions grouped by date and reason
+  static async getConsolidated(input: FilterScheduleExceptionsInput): Promise<ConsolidatedExceptionGroup[]> {
+    const exceptions = await this.list(input)
+    
+    // Group exceptions by date and reason
+    const groups = new Map<string, ConsolidatedExceptionGroup>()
+    
+    for (const exception of exceptions) {
+      const key = `${exception.date}-${exception.reason || 'no-reason'}`
+      
+      if (!groups.has(key)) {
+        groups.set(key, {
+          date: exception.date,
+          reason: exception.reason,
+          type: exception.type,
+          employeeIds: [],
+          employeeNames: [],
+          exceptions: []
+        })
+      }
+      
+      const group = groups.get(key)!
+      group.employeeIds.push(exception.employeeId)
+      if (exception.employee) {
+        group.employeeNames.push(exception.employee.name)
+      }
+      group.exceptions.push(exception)
+    }
+    
+    // Convert to array and sort by date
+    return Array.from(groups.values()).sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    )
+  }
+}
+
+// Type for consolidated exception groups
+export interface ConsolidatedExceptionGroup {
+  date: string
+  reason: string | null
+  type: ExceptionType
+  employeeIds: string[]
+  employeeNames: string[]
+  exceptions: ScheduleExceptionWithRelations[]
 }

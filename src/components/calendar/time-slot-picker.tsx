@@ -116,11 +116,6 @@ export function TimeSlotPicker({
                         disabled={!slot.available}
                       >
                         {time}
-                        {slot.employeeName && (
-                          <span className="block text-xs opacity-75">
-                            {slot.employeeName}
-                          </span>
-                        )}
                       </Button>
                     )
                   })}
@@ -137,7 +132,6 @@ export function TimeSlotPicker({
           <Clock className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">
             Ausgewählte Zeit: {format(new Date(selectedSlot.startTime), 'HH:mm')} Uhr
-            {selectedSlot.employeeName && ` mit ${selectedSlot.employeeName}`}
           </span>
         </div>
       )}

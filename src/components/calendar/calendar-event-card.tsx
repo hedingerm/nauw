@@ -9,7 +9,7 @@ import { AppointmentDetailDialog } from './appointment-detail-dialog'
 
 interface CalendarEventCardProps {
   event: CalendarEvent
-  variant?: 'full' | 'compact'
+  variant?: 'full' | 'compact' | 'minimal'
   onUpdate?: () => void
 }
 
@@ -20,6 +20,29 @@ export function CalendarEventCard({ event, variant = 'full', onUpdate }: Calenda
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     setDetailOpen(true)
+  }
+  
+  if (variant === 'minimal') {
+    return (
+      <>
+        <div
+          className={cn(
+            'px-1 py-0.5 rounded text-xs border cursor-pointer hover:opacity-90 transition-opacity h-full overflow-hidden',
+            event.color
+          )}
+          onClick={handleClick}
+        >
+          <div className="font-medium truncate text-[10px]">{format(event.start, 'HH:mm')}</div>
+          <div className="truncate text-[10px]">{event.customerName.split(' ')[0]}</div>
+        </div>
+        <AppointmentDetailDialog
+          appointmentId={event.id}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          onSuccess={onUpdate}
+        />
+      </>
+    )
   }
   
   if (variant === 'compact') {

@@ -3,6 +3,7 @@
 import { DayView } from './views/day-view'
 import { WeekView } from './views/week-view'
 import { MonthView } from './views/month-view'
+import { TeamWeekView } from './views/team-week-view'
 import type { CalendarViewType } from './types'
 
 interface CalendarViewProps {
@@ -45,6 +46,14 @@ export function CalendarView({
           businessId={businessId}
           currentDate={currentDate}
           selectedEmployeeId={selectedEmployeeId}
+          onTimeSlotClick={onTimeSlotClick}
+        />
+      )
+    case 'team':
+      return (
+        <TeamWeekView
+          businessId={businessId}
+          currentDate={currentDate}
           onTimeSlotClick={onTimeSlotClick}
         />
       )

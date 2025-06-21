@@ -22,6 +22,13 @@ const businessTypeSchema = z.string()
   .max(50, 'Maximal 50 Zeichen erlaubt')
   .regex(/^[a-zA-Z0-9äöüÄÖÜ\s\-&]+$/, 'Ungültige Zeichen im Geschäftstyp')
 
+// URL slug validation
+const urlSlugSchema = z.string()
+  .min(3, 'Mindestens 3 Zeichen erforderlich')
+  .max(50, 'Maximal 50 Zeichen erlaubt')
+  .regex(/^[a-z0-9-]+$/, 'Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt')
+  .optional()
+
 // Business Information Schema (Step 1)
 export const businessInfoSchema = z.object({
   name: businessNameSchema,
@@ -36,6 +43,7 @@ export const businessInfoSchema = z.object({
     .max(50, 'Maximal 50 Zeichen erlaubt')
     .default('Schweiz'),
   description: descriptionSchema,
+  urlSlug: urlSlugSchema,
 })
 
 // Business Hours Schema (Step 2)

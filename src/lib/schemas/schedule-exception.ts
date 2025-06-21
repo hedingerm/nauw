@@ -15,6 +15,27 @@ export const exceptionTypeEnum = z.enum([
 
 export type ExceptionType = z.infer<typeof exceptionTypeEnum>
 
+// Predefined exception reasons
+export const exceptionReasonEnum = z.enum([
+  'Betriebsferien',
+  'Urlaub',
+  'Kompensation',
+  'Krankheit',
+  'Weiterbildung',
+  'Sonstiges'
+])
+
+export type ExceptionReason = z.infer<typeof exceptionReasonEnum>
+
+export const EXCEPTION_REASONS: Record<ExceptionReason, string> = {
+  'Betriebsferien': 'Betriebsferien',
+  'Urlaub': 'Urlaub',
+  'Kompensation': 'Kompensation',
+  'Krankheit': 'Krankheit',
+  'Weiterbildung': 'Weiterbildung',
+  'Sonstiges': 'Sonstiges'
+}
+
 // Reason validation
 const reasonSchema = z.string()
   .trim()
@@ -132,8 +153,42 @@ export type ScheduleExceptionWithRelations = {
   }
 }
 
+// Business holiday schema - unified form for single day or date range
+export const createBusinessHolidaySchema = z.object({
+  dateFrom: exceptionDateSchema,
+  dateTo: exceptionDateSchema.optional(), // If not provided, it's a single day
+  reasonType: exceptionReasonEnum,
+  reasonDetails: z.string().trim().max(200).optional(), // For "Sonstiges"
+  employeeIds: z.array(uuidSchema).min(1, 'Mindestens ein Mitarbeiter muss ausgewählt werden'),
+}).refine(
+  (data) => {
+    if (!data.dateTo) return true
+    return new Date(data.dateFrom) <= new Date(data.dateTo)
+  },
+  { message: 'Enddatum muss nach oder am Startdatum liegen' }
+).refine(
+  (data) => {
+    if (!data.dateTo) return true
+    const start = new Date(data.dateFrom)
+    const end = new Date(data.dateTo)
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays <= 30
+  },
+  { message: 'Zeitraum darf maximal 30 Tage umfassen' }
+).refine(
+  (data) => {
+    if (data.reasonType === 'Sonstiges' && !data.reasonDetails) {
+      return false
+    }
+    return true
+  },
+  { message: 'Bitte geben Sie Details für "Sonstiges" an', path: ['reasonDetails'] }
+)
+
 // Type exports
 export type CreateScheduleExceptionInput = z.infer<typeof createScheduleExceptionSchema>
 export type CreateScheduleExceptionRangeInput = z.infer<typeof createScheduleExceptionRangeSchema>
 export type UpdateScheduleExceptionInput = z.infer<typeof updateScheduleExceptionSchema>
 export type FilterScheduleExceptionsInput = z.infer<typeof filterScheduleExceptionsSchema>
+export type CreateBusinessHolidayInput = z.infer<typeof createBusinessHolidaySchema>

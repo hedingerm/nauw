@@ -55,6 +55,7 @@ export function CalendarHeader({
         onDateChange(subDays(currentDate, 1))
         break
       case 'week':
+      case 'team':
         onDateChange(subWeeks(currentDate, 1))
         break
       case 'month':
@@ -69,6 +70,7 @@ export function CalendarHeader({
         onDateChange(addDays(currentDate, 1))
         break
       case 'week':
+      case 'team':
         onDateChange(addWeeks(currentDate, 1))
         break
       case 'month':
@@ -86,6 +88,7 @@ export function CalendarHeader({
       case 'day':
         return format(currentDate, 'EEEE, d. MMMM yyyy', { locale: de })
       case 'week':
+      case 'team':
         const weekStart = new Date(currentDate)
         weekStart.setDate(currentDate.getDate() - currentDate.getDay() + 1)
         const weekEnd = new Date(weekStart)
@@ -147,10 +150,11 @@ export function CalendarHeader({
               <SelectItem value="day">Tag</SelectItem>
               <SelectItem value="week">Woche</SelectItem>
               <SelectItem value="month">Monat</SelectItem>
+              <SelectItem value="team">Team</SelectItem>
             </SelectContent>
           </Select>
 
-          {employees.length > 0 && (
+          {employees.length > 0 && viewType !== 'team' && (
             <Select 
               value={selectedEmployeeId || 'all'} 
               onValueChange={(value) => onEmployeeChange(value === 'all' ? null : value)}

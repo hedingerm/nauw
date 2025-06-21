@@ -8,9 +8,11 @@ import { Input } from '@/src/components/ui/input'
 import { Label } from '@/src/components/ui/label'
 import { Textarea } from '@/src/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card'
+import { Checkbox } from '@/src/components/ui/checkbox'
 import { BusinessService } from '@/src/lib/services/business.service'
 import { ServiceService } from '@/src/lib/services/service.service'
 import { ServiceCategoryService } from '@/src/lib/services/service-category.service'
+import { EmployeeService } from '@/src/lib/services/employee.service'
 import { useAuth } from '@/src/lib/auth/context'
 import { createServiceSchema, type CreateServiceInput } from '@/src/lib/schemas/service'
 import { ArrowLeft } from 'lucide-react'
@@ -30,6 +32,8 @@ export default function NewServicePage() {
   const { user } = useAuth()
   const [business, setBusiness] = useState<any>(null)
   const [categories, setCategories] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -45,6 +49,9 @@ export default function NewServicePage() {
       if (businessData) {
         const categoriesData = await ServiceCategoryService.list(businessData.id)
         setCategories(categoriesData)
+        
+        const employeesData = await EmployeeService.list(businessData.id)
+        setEmployees(employeesData.filter(e => e.isActive && e.canPerformServices))
       }
     } catch (error) {
       console.error('Error loading business:', error)
@@ -66,15 +73,29 @@ export default function NewServicePage() {
       bufferBefore: 0,
       bufferAfter: 0,
       categoryId: undefined,
+      employeeIds: [],
     },
   })
+
+  const toggleEmployee = (employeeId: string) => {
+    setSelectedEmployees(prev => {
+      const newEmployees = prev.includes(employeeId)
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+      setValue('employeeIds', newEmployees)
+      return newEmployees
+    })
+  }
 
   const onSubmit = async (data: CreateServiceInput) => {
     if (!business?.id) return
     
     try {
       setIsSubmitting(true)
-      await ServiceService.create(business.id, data)
+      await ServiceService.create(business.id, {
+        ...data,
+        employeeIds: selectedEmployees,
+      })
       toast.success('Service erfolgreich erstellt')
       router.push('/services')
     } catch (error: any) {
@@ -206,6 +227,37 @@ export default function NewServicePage() {
                 )}
               </div>
             </div>
+
+            {employees.length > 0 && (
+              <div className="space-y-2">
+                <Label>Zugewiesene Mitarbeiter</Label>
+                <div className="space-y-2 border rounded-lg p-4 max-h-60 overflow-y-auto">
+                  {employees.map((employee) => (
+                    <div key={employee.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`employee-${employee.id}`}
+                        checked={selectedEmployees.includes(employee.id)}
+                        onCheckedChange={() => toggleEmployee(employee.id)}
+                      />
+                      <Label
+                        htmlFor={`employee-${employee.id}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {employee.name}
+                        {employee.role && (
+                          <span className="text-muted-foreground ml-2">
+                            ({employee.role})
+                          </span>
+                        )}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Wählen Sie die Mitarbeiter aus, die diesen Service durchführen können
+                </p>
+              </div>
+            )}
 
             <div className="flex justify-end gap-4">
               <Button

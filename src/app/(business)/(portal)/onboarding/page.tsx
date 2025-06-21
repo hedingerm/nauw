@@ -16,6 +16,7 @@ import { FormTooltip } from '@/src/components/onboarding/form-tooltip'
 import { Checkbox } from '@/src/components/ui/checkbox'
 import { toast } from 'sonner'
 import { BusinessService } from '@/src/lib/services/business.service'
+import { generateSlug } from '@/src/lib/utils/slug'
 import { 
   businessInfoSchema, 
   businessHoursSchema, 
@@ -471,6 +472,35 @@ export default function OnboardingPage() {
                       placeholder="Beschreiben Sie Ihr Geschäft kurz..."
                       rows={3}
                     />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="urlSlug">URL für Ihre Buchungsseite (optional)</Label>
+                      <FormTooltip content="Dies wird in Ihrer Buchungs-URL verwendet: nauw.ch/book/ihr-slug" />
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        id="urlSlug"
+                        {...businessForm.register('urlSlug')}
+                        placeholder={businessForm.watch('name') ? generateSlug(businessForm.watch('name')) : 'ihr-geschaeft'}
+                        onChange={(e) => {
+                          // Convert to lowercase and replace spaces with dashes
+                          const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')
+                          businessForm.setValue('urlSlug', value)
+                        }}
+                      />
+                      {businessForm.formState.errors.urlSlug && (
+                        <p className="text-sm text-destructive">
+                          {businessForm.formState.errors.urlSlug.message}
+                        </p>
+                      )}
+                      {businessForm.watch('urlSlug') && (
+                        <p className="text-sm text-muted-foreground">
+                          Ihre Buchungsseite: {window.location.origin}/book/{businessForm.watch('urlSlug') || (businessForm.watch('name') ? generateSlug(businessForm.watch('name')) : 'ihr-geschaeft')}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex justify-end">

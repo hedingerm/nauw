@@ -44,9 +44,9 @@ export default function BookingDesignPage() {
       setBusiness(businessData)
       
       // Generate booking URL
-      if (businessData) {
+      if (businessData && businessData.urlSlug) {
         const baseUrl = window.location.origin
-        setBookingUrl(`${baseUrl}/book/${businessData.id}`)
+        setBookingUrl(`${baseUrl}/book/${businessData.urlSlug}`)
       }
       
       // Load or create booking config

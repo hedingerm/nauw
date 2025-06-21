@@ -40,6 +40,13 @@ const businessTypeSchema = z.string()
   .max(50, 'Maximal 50 Zeichen erlaubt')
   .regex(/^[a-zA-Z0-9äöüÄÖÜ\s\-&]+$/, 'Ungültige Zeichen im Geschäftstyp')
 
+// URL slug validation
+const urlSlugSchema = z.string()
+  .min(3, 'URL-Slug muss mindestens 3 Zeichen lang sein')
+  .max(50, 'URL-Slug darf maximal 50 Zeichen lang sein')
+  .regex(/^[a-z0-9-]+$/, 'URL-Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten')
+  .optional()
+
 export const createBusinessSchema = z.object({
   name: businessNameSchema,
   email: emailSchema,
@@ -54,6 +61,7 @@ export const createBusinessSchema = z.object({
   businessHours: businessHoursSchema,
   type: businessTypeSchema,
   description: descriptionSchema,
+  urlSlug: urlSlugSchema,
 })
 
 export const updateBusinessSchema = createBusinessSchema.partial().extend({

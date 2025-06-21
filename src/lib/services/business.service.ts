@@ -7,6 +7,7 @@ import {
   type ServiceInfo,
   type CompleteOnboardingData 
 } from '@/src/lib/schemas/onboarding'
+import { generateSlug, generateUniqueSlug } from '@/src/lib/utils/slug'
 
 type Business = Database['public']['Tables']['Business']['Row']
 type BusinessInsert = Database['public']['Tables']['Business']['Insert']
@@ -57,6 +58,35 @@ export class BusinessService {
     }
     
     return data
+  }
+
+  static async getBySlug(slug: string): Promise<Business> {
+    const supabase = await this.getClient()
+    
+    const { data, error } = await supabase
+      .from('Business')
+      .select('*')
+      .eq('urlSlug', slug)
+      .single()
+    
+    if (error) {
+      console.error('Error fetching business by slug:', error)
+      throw new Error('Geschäft nicht gefunden')
+    }
+    
+    return data
+  }
+
+  static async checkSlugAvailability(slug: string): Promise<{ data: { id: string } | null, error: any }> {
+    const supabase = await this.getClient()
+    
+    const { data, error } = await supabase
+      .from('Business')
+      .select('id')
+      .eq('urlSlug', slug)
+      .maybeSingle()
+    
+    return { data, error }
   }
 
   static async getBusinessWithRelations(businessId: string) {
@@ -203,14 +233,28 @@ export class BusinessService {
       throw new Error('Ein Unternehmen mit dieser E-Mail-Adresse existiert bereits')
     }
 
+    // Check if URL slug already exists if custom slug is provided
+    if (data.business.urlSlug) {
+      const { data: existingSlug } = await supabase
+        .from('Business')
+        .select('id')
+        .eq('urlSlug', data.business.urlSlug)
+        .maybeSingle()
+      
+      if (existingSlug) {
+        throw new Error('Diese URL ist bereits vergeben. Bitte wählen Sie eine andere.')
+      }
+    }
+
     // Transform business hours to the format expected by the database
     const transformedBusinessHours: any = {}
     Object.entries(data.business.businessHours).forEach(([day, hours]) => {
       if (hours.isOpen) {
         transformedBusinessHours[day] = {
-          open: hours.openTime,
-          close: hours.closeTime,
+          start: hours.openTime,
+          end: hours.closeTime,
           ...(hours.hasLunchBreak && {
+            hasLunchBreak: true,
             lunchStart: hours.lunchStart,
             lunchEnd: hours.lunchEnd,
           }),
@@ -219,8 +263,21 @@ export class BusinessService {
     })
 
     try {
+      // Generate unique URL slug
+      const businessId = crypto.randomUUID()
+      let urlSlug: string
+      
+      // Use custom slug if provided, otherwise generate from business name
+      if (data.business.urlSlug) {
+        urlSlug = data.business.urlSlug
+      } else {
+        const baseSlug = generateSlug(data.business.name)
+        urlSlug = generateUniqueSlug(baseSlug, businessId.substring(0, 8))
+      }
+      
       // 1. Create the business
       const businessData: BusinessInsert = {
+        id: businessId,
         name: data.business.name,
         type: data.business.type,
         email: data.business.email,
@@ -231,6 +288,7 @@ export class BusinessService {
         country: data.business.country || 'Schweiz',
         description: data.business.description || null,
         businessHours: transformedBusinessHours,
+        urlSlug: urlSlug,
         userId: user.id, // Link business to authenticated user
       }
 

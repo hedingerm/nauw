@@ -13,7 +13,7 @@ export default function CalendarPage() {
   const [business, setBusiness] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewType, setViewType] = useState<CalendarViewType>('week')
+  const [viewType, setViewType] = useState<CalendarViewType>('team')
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{

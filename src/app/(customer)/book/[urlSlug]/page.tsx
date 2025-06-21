@@ -53,7 +53,7 @@ interface CustomerFormData {
 type BookingStep = 'service' | 'datetime' | 'customer' | 'confirmation'
 
 interface BookingPageProps {
-  params: Promise<{ businessId: string }>
+  params: Promise<{ urlSlug: string }>
 }
 
 const socialIcons = {
@@ -69,7 +69,7 @@ const socialIcons = {
 export default function BookingPage({ params: paramsPromise }: BookingPageProps) {
   const params = use(paramsPromise)
   const router = useRouter()
-  const businessId = params.businessId
+  const urlSlug = params.urlSlug
 
   // Business data
   const [business, setBusiness] = useState<Business | null>(null)
@@ -77,6 +77,7 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
   const [serviceGroups, setServiceGroups] = useState<ServicesGroupedByCategory[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
+  const [businessId, setBusinessId] = useState<string | null>(null)
 
   // Booking state
   const [currentStep, setCurrentStep] = useState<BookingStep>('service')
@@ -110,7 +111,7 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
 
   useEffect(() => {
     loadBusinessData()
-  }, [businessId])
+  }, [urlSlug])
 
   useEffect(() => {
     if (selectedService && selectedDate) {
@@ -130,20 +131,21 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
     try {
       setLoading(true)
       
-      // Load business details
-      const businessData = await BusinessService.getById(businessId)
+      // Load business details by URL slug
+      const businessData = await BusinessService.getBySlug(urlSlug)
       if (!businessData) {
         toast.error('Unternehmen nicht gefunden')
         router.push('/')
         return
       }
       setBusiness(businessData)
+      setBusinessId(businessData.id)
 
       // Load services, employees, and config in parallel
       const [serviceGroupsData, employeesData, configData] = await Promise.all([
-        ServiceService.listActiveGroupedByCategory(businessId),
-        EmployeeService.listActive(businessId),
-        BookingPageConfigService.getOrCreate(businessId)
+        ServiceService.listActiveGroupedByCategory(businessData.id),
+        EmployeeService.listActive(businessData.id),
+        BookingPageConfigService.getOrCreate(businessData.id)
       ])
       
       setServiceGroups(serviceGroupsData)
@@ -175,6 +177,7 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
   const selectEmployeeFairly = async (availableEmployees: Array<{id: string, name: string}>, date: string): Promise<string> => {
     try {
       // Get existing appointments for this date to see current distribution
+      if (!businessId) return availableEmployees[0]?.id || ''
       const appointments = await AppointmentService.getByDateAndEmployee(businessId, date)
       
       // Count appointments per employee
@@ -214,7 +217,7 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
   }
 
   const loadAvailableSlots = async () => {
-    if (!selectedService || !selectedDate) return
+    if (!selectedService || !selectedDate || !businessId) return
 
     try {
       setLoadingSlots(true)
@@ -415,6 +418,10 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
       setSubmitting(true)
 
       // Create or find customer using getOrCreate to prevent duplicates
+      if (!businessId) {
+        throw new Error('Business ID not available')
+      }
+      
       const customer = await CustomerService.getOrCreate(businessId, {
         name: `${customerData.firstName} ${customerData.lastName}`,
         email: customerData.email,

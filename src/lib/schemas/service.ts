@@ -25,6 +25,7 @@ export const createServiceSchema = z.object({
   bufferAfter: bufferSchema.default(0),
   categoryId: uuidSchema.optional(),
   isActive: z.boolean().default(true),
+  employeeIds: z.array(uuidSchema).optional(),
 })
 
 export const updateServiceSchema = createServiceSchema.partial()

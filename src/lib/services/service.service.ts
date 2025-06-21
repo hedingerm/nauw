@@ -238,11 +238,12 @@ export class ServiceService {
 
   static async create(businessId: string, data: z.infer<typeof createServiceSchema>): Promise<Service> {
     const supabase = await this.getClient()
+    const { employeeIds, ...serviceData } = data
     
     const { data: service, error } = await supabase
       .from('Service')
       .insert({
-        ...data,
+        ...serviceData,
         businessId,
       })
       .select()
@@ -251,6 +252,24 @@ export class ServiceService {
     if (error) {
       console.error('Error creating service:', error)
       throw new Error(error.message)
+    }
+
+    // Create employee associations
+    if (employeeIds && employeeIds.length > 0 && service) {
+      const employeeServices = employeeIds.map(employeeId => ({
+        serviceId: service.id,
+        employeeId,
+      }))
+
+      const { error: employeeError } = await supabase
+        .from('EmployeeService')
+        .insert(employeeServices)
+
+      if (employeeError) {
+        // Rollback service creation
+        await supabase.from('Service').delete().eq('id', service.id)
+        throw new Error(employeeError.message)
+      }
     }
 
     return service

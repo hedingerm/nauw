@@ -157,6 +157,7 @@ export type Database = {
           subscriptionTier: string
           type: string
           updatedAt: string
+          urlSlug: string
           userId: string | null
         }
         Insert: {
@@ -176,6 +177,7 @@ export type Database = {
           subscriptionTier?: string
           type: string
           updatedAt?: string
+          urlSlug: string
           userId?: string | null
         }
         Update: {
@@ -195,6 +197,7 @@ export type Database = {
           subscriptionTier?: string
           type?: string
           updatedAt?: string
+          urlSlug?: string
           userId?: string | null
         }
         Relationships: []
@@ -635,7 +638,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_slug: {
+        Args: { input_text: string }
+        Returns: string
+      }
     }
     Enums: {
       appointment_status:
