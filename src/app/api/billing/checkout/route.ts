@@ -42,8 +42,12 @@ export async function POST(request: NextRequest) {
         .eq("id", business.id)
     }
 
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/billing?session_id={CHECKOUT_SESSION_ID}`
-    const cancelUrl = `${process.env.NEXT_PUBLIC_APP_URL}/billing`
+    // Get base URL with fallback for production
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.NODE_ENV === 'production' ? 'https://www.nauw.ch' : 'http://localhost:3000')
+    
+    const successUrl = `${baseUrl}/billing?session_id={CHECKOUT_SESSION_ID}`
+    const cancelUrl = `${baseUrl}/billing`
 
     let session
 
