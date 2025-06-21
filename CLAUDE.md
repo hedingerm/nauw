@@ -123,11 +123,48 @@ When implementing public-facing features (e.g., booking pages):
    - Consider whether anonymous users need to see the data they just created
    - Add time-limited SELECT policies if needed (e.g., view appointments created in last 5 minutes)
 
-### Validation Architecture
+### Supabase Authentication Flows
+When implementing auth flows (login, register, password reset):
+1. **Password Reset Flow**:
+   - Forgot password page sends reset email with `resetPasswordForEmail`
+   - Reset password page must handle hash parameters from email links
+   - Check for `#access_token` and `type=recovery` in URL hash
+   - Use `getUser(accessToken)` instead of `exchangeCodeForSession` for recovery flows
+2. **Redirect URLs**:
+   - Must be configured in Supabase Dashboard under Authentication > URL Configuration
+   - Test locally with proper redirect URLs before deployment
+3. **Session Handling**:
+   - Always check session validity before allowing protected actions
+   - Handle expired sessions gracefully with user-friendly messages
+
+### Schema Validation and Consistency
 - Always define Zod schemas for any data structure
 - Use the same Zod schema for both client and server validation
 - Integrate Zod with react-hook-form for form validation
 - Place shared schemas in a central location (e.g., `src/lib/schemas/`)
+- **Critical: Validate schema dependencies between related entities**:
+  - When schemas reference each other (e.g., customerData in appointments), ensure field requirements match
+  - If a customer requires phone but not email, the appointment's customerData must match
+  - Run cross-schema validation checks when modifying any schema
+  - Document schema relationships in comments
+
+### Form Data Transformation
+When handling form submissions with optional fields:
+1. **Empty String Transformation**:
+   ```typescript
+   const emptyStringToUndefined = z.literal('').transform(() => undefined)
+   
+   // For optional fields in schemas:
+   email: z.union([emailSchema, emptyStringToUndefined]).optional()
+   ```
+2. **Why This Matters**:
+   - HTML forms submit empty strings for unfilled fields
+   - Database and validation expect `undefined` for optional fields
+   - Without transformation, empty strings fail validation or cause type errors
+3. **Apply Consistently**:
+   - All optional string fields should use union types with empty string transformation
+   - Date fields may need similar handling for empty date inputs
+   - Test forms with both filled and empty optional fields
 
 ### Type Safety and Database Synchronization
 - Always ensure database.types.ts reflects the actual database schema

@@ -13,13 +13,7 @@ import {
   Layout, 
   FileText, 
   Settings2, 
-  Eye,
   Save,
-  Smartphone,
-  Monitor,
-  Tablet,
-  Download,
-  Copy,
   ExternalLink
 } from 'lucide-react'
 import { DesignTab } from '@/src/components/booking-design/design-tab'
@@ -29,15 +23,11 @@ import { FeaturesTab } from '@/src/components/booking-design/features-tab'
 import { BookingPreview } from '@/src/components/booking-design/booking-preview'
 import type { BookingPageConfig } from '@/src/lib/types/booking-config'
 
-type PreviewDevice = 'desktop' | 'tablet' | 'mobile'
-
 export default function BookingDesignPage() {
   const [business, setBusiness] = useState<any>(null)
   const [config, setConfig] = useState<BookingPageConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('desktop')
   const [hasChanges, setHasChanges] = useState(false)
   const [bookingUrl, setBookingUrl] = useState('')
 
@@ -101,14 +91,6 @@ export default function BookingDesignPage() {
     setHasChanges(true)
   }
 
-  const copyBookingUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(bookingUrl)
-      toast.success('Link in die Zwischenablage kopiert')
-    } catch (error) {
-      toast.error('Fehler beim Kopieren des Links')
-    }
-  }
 
   const openBookingPage = () => {
     window.open(bookingUrl, '_blank')
@@ -140,25 +122,10 @@ export default function BookingDesignPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={copyBookingUrl}
-          >
-            <Copy className="mr-2 h-4 w-4" />
-            Link kopieren
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             onClick={openBookingPage}
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             Seite öffnen
-          </Button>
-          <Button
-            onClick={() => setShowPreview(!showPreview)}
-            variant="outline"
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            {showPreview ? 'Editor' : 'Vorschau'}
           </Button>
           <Button
             onClick={handleSave}
@@ -176,127 +143,88 @@ export default function BookingDesignPage() {
       </div>
 
       {/* Main Content */}
-      {showPreview ? (
-        <div className="space-y-4">
-          {/* Device Selector */}
-          <div className="flex items-center justify-center gap-2 p-4 bg-gray-100 rounded-lg">
-            <Button
-              variant={previewDevice === 'desktop' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPreviewDevice('desktop')}
-            >
-              <Monitor className="mr-2 h-4 w-4" />
-              Desktop
-            </Button>
-            <Button
-              variant={previewDevice === 'tablet' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPreviewDevice('tablet')}
-            >
-              <Tablet className="mr-2 h-4 w-4" />
-              Tablet
-            </Button>
-            <Button
-              variant={previewDevice === 'mobile' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPreviewDevice('mobile')}
-            >
-              <Smartphone className="mr-2 h-4 w-4" />
-              Mobil
-            </Button>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Settings Panel */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardContent className="p-6">
+              <Tabs defaultValue="design" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="design" className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    <span className="hidden sm:inline">Design</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="layout" className="flex items-center gap-2">
+                    <Layout className="h-4 w-4" />
+                    <span className="hidden sm:inline">Layout</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="content" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Inhalte</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="features" className="flex items-center gap-2">
+                    <Settings2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Features</span>
+                  </TabsTrigger>
+                </TabsList>
 
-          {/* Preview */}
-          <BookingPreview
-            config={config}
-            business={business}
-            device={previewDevice}
-          />
+                <TabsContent value="design" className="space-y-4">
+                  <DesignTab
+                    config={config}
+                    onUpdate={updateConfig}
+                    businessId={business.id}
+                  />
+                </TabsContent>
+
+                <TabsContent value="layout" className="space-y-4">
+                  <LayoutTab
+                    config={config}
+                    onUpdate={updateConfig}
+                  />
+                </TabsContent>
+
+                <TabsContent value="content" className="space-y-4">
+                  <ContentTab
+                    config={config}
+                    onUpdate={updateConfig}
+                  />
+                </TabsContent>
+
+                <TabsContent value="features" className="space-y-4">
+                  <FeaturesTab
+                    config={config}
+                    onUpdate={updateConfig}
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Settings Panel */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardContent className="p-6">
-                <Tabs defaultValue="design" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="design" className="flex items-center gap-2">
-                      <Palette className="h-4 w-4" />
-                      <span className="hidden sm:inline">Design</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="layout" className="flex items-center gap-2">
-                      <Layout className="h-4 w-4" />
-                      <span className="hidden sm:inline">Layout</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="content" className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      <span className="hidden sm:inline">Inhalte</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="features" className="flex items-center gap-2">
-                      <Settings2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Features</span>
-                    </TabsTrigger>
-                  </TabsList>
 
-                  <TabsContent value="design" className="space-y-4">
-                    <DesignTab
-                      config={config}
-                      onUpdate={updateConfig}
-                      businessId={business.id}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="layout" className="space-y-4">
-                    <LayoutTab
-                      config={config}
-                      onUpdate={updateConfig}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="content" className="space-y-4">
-                    <ContentTab
-                      config={config}
-                      onUpdate={updateConfig}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="features" className="space-y-4">
-                    <FeaturesTab
-                      config={config}
-                      onUpdate={updateConfig}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Live Preview */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-4 h-[calc(100vh-120px)]">
-              <CardHeader>
-                <CardTitle>Live-Vorschau</CardTitle>
-                <CardDescription>
-                  Sehen Sie Ihre Änderungen in Echtzeit
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 h-[calc(100%-120px)]">
-                <div className="bg-gray-100 rounded-lg overflow-hidden h-full">
-                  <div className="h-full overflow-y-auto">
-                    <BookingPreview
-                      config={config}
-                      business={business}
-                      device="mobile"
-                      compact
-                    />
-                  </div>
+        {/* Live Preview */}
+        <div className="lg:col-span-1">
+          <Card className="sticky top-4 h-[calc(100vh-120px)]">
+            <CardHeader>
+              <CardTitle>Live-Vorschau</CardTitle>
+              <CardDescription>
+                Sehen Sie Ihre Änderungen in Echtzeit
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-2 h-[calc(100%-120px)]">
+              <div className="bg-gray-100 rounded-lg overflow-hidden h-full">
+                <div className="h-full overflow-y-auto">
+                  <BookingPreview
+                    config={config}
+                    business={business}
+                    device="mobile"
+                    compact
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      )}
+      </div>
     </div>
   )
 }
