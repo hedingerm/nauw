@@ -223,14 +223,14 @@ export default function BillingPage() {
                   <div className="p-4 bg-yellow-50 rounded-lg">
                     <p className="font-semibold">Zusätzliche Buchungen: {usageData.overage_bookings}</p>
                     <p className="text-sm text-muted-foreground">
-                      Kosten: {formatCurrency(usageData.overage_cost)} (CHF 0.50 pro Buchung)
+                      Erwägen Sie ein Upgrade oder ein Booster Pack
                     </p>
                   </div>
                 )}
 
                 <Button onClick={handleAddBoosterPack} variant="outline" className="w-full">
                   <Package className="h-4 w-4 mr-2" />
-                  Booster Pack hinzufügen (50 Buchungen für CHF 20)
+                  Booster Pack hinzufügen
                 </Button>
               </>
             ) : (

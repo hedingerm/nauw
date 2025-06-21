@@ -91,22 +91,56 @@ npm run test:e2e     # Run E2E tests
 
 ## Architecture Guidelines
 
-### Critical: Database Schema Verification First
-Before implementing any database operations:
-1. **Always verify actual schema first** using Supabase MCP tools:
-   - Use `mcp__MCP_SUPABASE__execute_sql` to check table structure
-   - Use `mcp__MCP_SUPABASE__list_tables` to verify columns
-   - Check RLS policies with: `SELECT * FROM pg_policies WHERE tablename = 'YourTable'`
-   - Never assume types - numeric fields might be `number` not `string`
-2. **When encountering database errors**:
-   - Empty error objects often indicate schema mismatches
-   - Log full error details: `console.error('Database error:', error)`
-   - Check nullable constraints match between database and types
-   - For RLS errors, verify policies for the current auth context
-3. **After any schema changes**:
-   - Run `mcp__MCP_SUPABASE__generate_typescript_types`
+### Database Operations Workflow
+Before implementing ANY database operation, follow this strict workflow:
+
+1. **Verify Schema First** (MANDATORY):
+   ```sql
+   -- Check exact column names and types
+   SELECT column_name, data_type, is_nullable, column_default 
+   FROM information_schema.columns 
+   WHERE table_name = 'YourTable'
+   ORDER BY ordinal_position;
+   
+   -- Verify RLS policies
+   SELECT * FROM pg_policies WHERE tablename = 'YourTable';
+   ```
+
+2. **Test Operations**:
+   - Test with both authenticated and anonymous roles
+   - Log full error objects for debugging
+   - Check for empty error responses (often indicates schema mismatch)
+
+3. **After Schema Changes**:
+   - Always run `mcp__MCP_SUPABASE__generate_typescript_types`
    - Update database.types.ts immediately
-   - Test with both authenticated and anonymous access if applicable
+   - Run `npm run typecheck` to catch type mismatches
+
+### Single Source of Truth Principle
+**Critical**: Each piece of data should exist in exactly ONE place in the database.
+
+1. **Subscription Data**:
+   - ALL subscription details belong in the Subscription table
+   - Business table should only have `stripe_customer_id` for customer identification
+   - Never duplicate fields like billing_cycle, period_end, status across tables
+
+2. **When Designing Schema**:
+   - Ask: "Where does this data logically belong?"
+   - If data describes a subscription, it goes in Subscription
+   - If data describes a business entity, it goes in Business
+   - Use foreign keys to connect related data
+
+3. **Red Flags**:
+   - Same field names across different tables (except IDs)
+   - Updating same information in multiple places
+   - Fields that could become out of sync
+
+4. **Refactoring Redundancy**:
+   - Identify all duplicated fields
+   - Determine the authoritative source
+   - Migrate data to single location
+   - Update all code references
+   - Remove redundant fields via migration
 
 ### Security-First Development
 - Always implement Row Level Security (RLS) when working with databases
@@ -222,6 +256,36 @@ The most critical part is the availability calculation (FR-11). When implementin
 3. Check for appointment conflicts
 4. Ensure appointments fit within working blocks
 
+### Stripe Integration Patterns
+
+#### Webhook Processing
+1. **Metadata Flow**:
+   - Always pass `business_id` in checkout session metadata
+   - Pass metadata to both session AND subscription_data for redundancy
+   - Use metadata as fallback when customer lookup fails
+
+2. **Customer ID Synchronization**:
+   - Set stripe_customer_id in Business table at multiple checkpoints:
+     - During checkout creation (if new customer)
+     - In checkout.session.completed webhook
+     - In subscription webhooks as fallback
+   - Always check if stripe_customer_id exists before creating new customer
+
+3. **Error Handling in Webhooks**:
+   - Return 200 even for business logic errors (to prevent Stripe retries)
+   - Log full error context including metadata and IDs
+   - Use `.maybeSingle()` instead of `.single()` to avoid 406 errors
+
+4. **Common Webhook Patterns**:
+   ```typescript
+   // Find business with multiple fallbacks
+   let business = await findByStripeCustomerId(customerId)
+   if (!business && metadata?.business_id) {
+     business = await findById(metadata.business_id)
+     // Update stripe_customer_id if missing
+   }
+   ```
+
 ### Database Schema Considerations
 - Business accounts start with single user/role
 - Services need duration, price, buffer times
@@ -241,18 +305,34 @@ The most critical part is the availability calculation (FR-11). When implementin
 - Always verify column names match the exact casing in the database schema
 - When using Supabase MCP, test queries incrementally to catch syntax errors early
 
-### Database Schema Verification
-- Before implementing database operations, verify the actual database schema matches database.types.ts
-- Use Supabase MCP tools to check table structures when encountering database errors
-- When adding new columns or modifying tables:
-  1. Apply migrations using mcp__MCP_SUPABASE__apply_migration
-  2. Regenerate types using mcp__MCP_SUPABASE__generate_typescript_types
-  3. Update database.types.ts accordingly
-- Common schema issues to check:
-  - Nullable vs non-nullable fields
-  - Data types (especially numeric vs text for prices)
-  - Missing columns (e.g., isActive, timestamps)
-  - Enum types existence
+### Database Schema and Type Synchronization
+When making ANY database schema changes:
+
+1. **Apply Migration**:
+   ```typescript
+   // Use mcp__MCP_SUPABASE__apply_migration with descriptive name
+   ```
+
+2. **Generate Types** (MANDATORY):
+   ```typescript
+   // ALWAYS run after any schema change
+   mcp__MCP_SUPABASE__generate_typescript_types
+   ```
+
+3. **Update Local Types**:
+   - Write the generated types to `src/lib/supabase/database.types.ts`
+   - The types file MUST be updated before any code changes
+
+4. **Verify Types**:
+   ```bash
+   npm run typecheck  # Must pass before proceeding
+   ```
+
+5. **Common Type Mismatches to Check**:
+   - Numeric fields: database uses `number` not `string`
+   - Nullable fields: ensure database and types match
+   - Foreign key relationships: verify they exist in types
+   - Removed fields: ensure they're gone from types
 
 ### Supabase MCP Tool Usage
 When working with the database, prefer using Supabase MCP tools:
@@ -270,9 +350,14 @@ When working with the database, prefer using Supabase MCP tools:
 5. **For RLS policy changes** - always use apply_migration with descriptive names
 
 **Migration Naming Convention**:
-- Use descriptive names: `add_user_id_to_business`, `fix_public_appointment_creation_policy`
-- Include the action and target: `[action]_[target]_[specifics]`
-- For fixes, start with `fix_`: `fix_appointment_policies_for_public`
+- Format: `[timestamp]_[action]_[target]_[specifics]`
+- Examples:
+  - `20240121_add_stripe_customer_id_to_business`
+  - `20240121_remove_redundant_fields_from_business`
+  - `20240121_fix_public_booking_policies`
+  - `20240121_create_subscription_table`
+- Actions: `add`, `remove`, `fix`, `create`, `update`, `rename`
+- Always use descriptive names that explain the change clearly
 
 Example debugging workflow:
 ```sql
@@ -310,6 +395,41 @@ export class BookingService {
 - Always handle Supabase errors explicitly
 - Return typed responses using Zod schemas
 - Use static methods for stateless operations
+
+### Testing Database Operations
+
+1. **Test with Different Roles**:
+   ```sql
+   -- Always test operations with relevant roles
+   SET LOCAL role TO 'anon';      -- Test public access
+   SELECT * FROM "YourTable";     -- Should this work?
+   
+   SET LOCAL role TO 'authenticated';  -- Test logged-in access
+   SELECT * FROM "YourTable";          -- Should this work?
+   
+   RESET role;  -- Return to service role
+   ```
+
+2. **Public Access Testing**:
+   - For booking pages: Test both authenticated and anonymous access
+   - Verify public SELECT policies work correctly
+   - Test public INSERT for customer/appointment creation
+   - Ensure sensitive data isn't exposed publicly
+
+3. **Common Testing Scenarios**:
+   ```typescript
+   // After adding public policies, test:
+   // 1. Can anonymous users view required data?
+   // 2. Can anonymous users create records?
+   // 3. Are private fields properly hidden?
+   // 4. Do authenticated users maintain full access?
+   ```
+
+4. **Policy Testing Checklist**:
+   - [ ] Test each operation (SELECT, INSERT, UPDATE, DELETE) separately
+   - [ ] Test with both roles (anon, authenticated)
+   - [ ] Verify time-based policies (e.g., "created in last 5 minutes")
+   - [ ] Check policy conditions match business logic
 
 ### Appointment and Buffer Time Handling
 - Appointments are stored with buffer times included in the database
@@ -369,30 +489,42 @@ export class CustomerService {
 
 ### Database Error Handling
 When encountering database errors:
+
 1. **Always log the full error object** for debugging:
    ```typescript
    if (error) {
      console.error('Database error:', error)
      console.error('Failed data:', data)
+     console.error('Query details:', { table, operation, filters })
      throw new Error(error.message || 'Datenbankfehler')
    }
    ```
 
-2. **Common database error patterns**:
-   - Foreign key violations: "Verknüpfung nicht gefunden"
-   - Unique constraints: "Eintrag existiert bereits"
-   - Null violations: "Pflichtfeld fehlt"
-   - Type mismatches: "Ungültiger Datentyp"
+2. **Empty Error Objects**:
+   - Empty errors (`{}`) usually indicate schema mismatches
+   - Check nullable constraints match between database and types
+   - Verify all columns exist with correct names (case-sensitive)
+   - Test the exact same query in Supabase SQL editor
 
-3. **Schema mismatch indicators**:
-   - Empty error objects often indicate schema issues
-   - Check nullable fields and data types
-   - Verify all required columns exist
+3. **Common Database Error Patterns**:
+   - Foreign key violations: Check related record exists
+   - Unique constraints: Implement duplicate checking before insert
+   - RLS policy failures: Test with correct auth context
+   - Type mismatches: Verify numeric vs string fields
 
-4. **Recovery strategies**:
-   - For schema issues: Check and fix database schema first
-   - For data issues: Validate input data matches schema
-   - For constraint issues: Check related records exist
+4. **Debugging Workflow**:
+   ```typescript
+   // When query fails mysteriously:
+   // 1. Log the exact query being attempted
+   // 2. Check schema with information_schema query
+   // 3. Test query directly in Supabase dashboard
+   // 4. Verify RLS policies aren't blocking
+   ```
+
+5. **406 Errors on Joins**:
+   - Often caused by RLS policies blocking joined tables
+   - Use `.maybeSingle()` instead of `.single()` when record might not exist
+   - Check that joined table has SELECT policy for the role
 
 ### Code Organization Standards
 - File naming: use kebab-case for files (e.g., `booking-form.tsx`)
@@ -457,6 +589,47 @@ src/
 - Phone numbers use +41 format
 - Postal codes are 4 digits
 
+## Debugging Guidelines
+When functionality isn't working as expected:
+
+1. **Browser Console First**: Check for client-side errors
+2. **Add Targeted Logging**:
+   ```typescript
+   console.log('[ComponentName] Function entry:', { params })
+   console.log('[ComponentName] Data validation:', { validated })
+   console.log('[ComponentName] API call:', { endpoint, payload })
+   console.log('[ComponentName] Response:', { data, error })
+   ```
+
+3. **Verify Data Flow**:
+   - Input → Validation → Service Call → Response → UI Update
+   - Log at each step to identify where it breaks
+
+4. **Check Network Tab**: 
+   - Verify API calls are made
+   - Check request payloads
+   - Examine response status and data
+
+5. **Database Debugging**:
+   ```typescript
+   // When database operations fail:
+   console.log('Query attempt:', {
+     table: 'TableName',
+     operation: 'select/insert/update',
+     filters: { ...filters },
+     data: { ...data }
+   })
+   ```
+
+6. **Remove Debug Logs**: Clean up console.logs after fixing
+
+7. **Common Patterns to Check**:
+   - async/await usage (missing await?)
+   - State updates (React batching?)
+   - Event handler binding
+   - Undefined/null checks
+   - Type mismatches
+
 ## Doing tasks
 The user will primarily request you perform software engineering tasks. This includes solving bugs, adding new functionality, refactoring code, explaining code, and more. For these tasks the following steps are recommended:
 - Use the TodoWrite tool to plan the task if required
@@ -483,14 +656,6 @@ The user will primarily request you perform software engineering tasks. This inc
 - VERY IMPORTANT: When you have completed a task, you MUST run the lint and typecheck commands (eg. npm run lint, npm run typecheck, ruff, etc.) with Bash if they were provided to you to ensure your code is correct. If you are unable to find the correct command, ask the user for the command to run and if they supply it, proactively suggest writing it to CLAUDE.md so that you will know to run it next time.
 NEVER commit changes unless the user explicitly asks you to. It is VERY IMPORTANT to only commit when explicitly asked, otherwise the user will feel that you are being too proactive.
 
-### Debugging Guidelines
-When functionality isn't working as expected:
-1. First check the browser console for errors
-2. Add targeted console.logs at key points: function entry, data validation, API calls
-3. Verify data flow: input → validation → service call → response
-4. Check network tab for API failures
-5. Remove debug logs after fixing the issue
-6. If issue persists, check for common patterns: async/await usage, state updates, event handler binding
 ### Sequential Thinking MCP Usage
 When working with complex problems or multi-step analysis, use the `mcp__sequential-thinking__sequentialthinking` tool to:
 - Break down complex problems into manageable steps

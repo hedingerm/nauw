@@ -124,39 +124,34 @@ export default function UpgradePage() {
 
   const planFeatures: Record<string, string[]> = {
     Starter: [
-      "Bis zu 100 Buchungen/Monat",
-      "1 Mitarbeiter",
-      "Basis-Kalender",
-      "E-Mail Support"
+      "Bis zu 30 Buchungen/Monat",
+      "1 Kalender",
+      "Online-Buchungsseite",
+      "E-Mail Erinnerungen"
     ],
     Pro: [
-      "Bis zu 350 Buchungen/Monat",
-      "3 Mitarbeiter",
-      "Erweiterte Kalenderansicht",
-      "Kundenverwaltung (Mini-CRM)",
-      "E-Mail & Chat Support"
+      "Alle Starter-Features",
+      "Bis zu 100 Buchungen/Monat",
+      "Unbegrenzte Kalender",
+      "SMS Erinnerungen"
     ],
     Business: [
-      "Bis zu 1000 Buchungen/Monat",
-      "10 Mitarbeiter",
       "Alle Pro-Features",
-      "Detaillierte Berichte",
-      "API-Zugang",
-      "Prioritäts-Support"
+      "Bis zu 300 Buchungen/Monat",
+      "Detaillierte Analysen",
+      "Team Support"
     ],
     Elite: [
-      "Unbegrenzte Buchungen",
-      "Unbegrenzte Mitarbeiter",
       "Alle Business-Features",
-      "White-Label Option",
-      "Dedizierter Account Manager",
-      "24/7 Support"
+      "Unbegrenzte Buchungen",
+      "Prioritäts-Support",
+      "Persönlicher Ansprechpartner"
     ]
   }
 
   const planDescriptions: Record<string, string> = {
-    Starter: "Perfekt für kleine Unternehmen und Einzelpersonen",
-    Pro: "Ideal für wachsende Unternehmen mit mehreren Mitarbeitern",
+    Starter: "Perfekt für Einzelunternehmer und Freelancer",
+    Pro: "Ideal für kleine Teams und wachsende Unternehmen",
     Business: "Für etablierte Unternehmen mit hohem Buchungsvolumen",
     Elite: "Unbegrenzte Möglichkeiten für große Unternehmen"
   }
@@ -244,7 +239,7 @@ export default function UpgradePage() {
 
                 {plan.bookings_included > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Zusätzliche Buchungen: CHF 0.50/Buchung
+                    Zusätzliche Buchungen verfügbar über Booster Packs
                   </p>
                 )}
               </CardContent>
