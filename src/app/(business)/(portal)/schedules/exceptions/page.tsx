@@ -9,7 +9,7 @@ import { EmployeeService } from '@/src/lib/services/employee.service'
 import { ScheduleExceptionService } from '@/src/lib/services/schedule-exception.service'
 import { ScheduleExceptionDialog } from '@/src/components/schedules/schedule-exception-dialog'
 import { ScheduleExceptionTable } from '@/src/components/schedules/schedule-exception-table'
-import { ArrowLeft, Plus, Calendar, Clock, Users, Filter, Download } from 'lucide-react'
+import { ArrowLeft, Plus, Calendar, Filter } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import type { ScheduleExceptionWithRelations } from '@/src/lib/schemas/schedule-exception'
@@ -157,9 +157,6 @@ export default function ScheduleExceptionsPage() {
     )
   }
 
-  const upcomingExceptions = exceptions.filter(e => new Date(e.date) >= new Date()).length
-  const pastExceptions = exceptions.filter(e => new Date(e.date) < new Date()).length
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -193,70 +190,6 @@ export default function ScheduleExceptionsPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Gesamt
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{exceptions.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {upcomingExceptions} anstehend
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Abwesenheiten
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {exceptions.filter(e => e.type === 'unavailable').length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Urlaub & Krankheit
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Geänderte Zeiten
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {exceptions.filter(e => e.type === 'modified_hours').length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Sonderöffnungszeiten
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Betroffene Mitarbeiter
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Set(exceptions.map(e => e.employeeId)).size}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              von {employees.length} gesamt
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Filters */}
       <Card>
