@@ -91,6 +91,18 @@ export class AppointmentService {
       throw new Error('Fehler beim Erstellen des Termins')
     }
 
+    // Log usage for confirmed appointments
+    if (appointment.status === 'confirmed') {
+      try {
+        // Get service details for description
+        const service = await ServiceService.getById(data.serviceId)
+        await UsageService.logBooking(data.businessId, appointment.id, service.name)
+      } catch (usageError) {
+        console.error('Error logging usage:', usageError)
+        // Don't fail the appointment creation if usage logging fails
+      }
+    }
+
     return appointment
   }
 

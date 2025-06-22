@@ -120,6 +120,26 @@ Before implementing ANY database operation, follow this strict workflow:
    - Update database.types.ts immediately
    - Run `npm run typecheck` to catch type mismatches
 
+### Validation Patterns and Utilities
+
+1. **Validation Utility Locations**:
+   - Name, email, phone validation schemas: `src/lib/schemas/validation-rules.ts`
+   - Phone normalization and validation: `src/lib/utils/normalize.ts`
+   - Reusable validation schemas use Zod: `src/lib/schemas/*.ts`
+
+2. **Form Validation Best Practices**:
+   - Show validation errors on blur (when user leaves field)
+   - Use touched state to avoid showing errors on pristine fields
+   - Display errors below input fields using: `<p className="text-sm text-destructive">{error}</p>`
+   - Add visual indicators: `className={errors.fieldName ? 'border-destructive' : ''}`
+   - Required fields: Mark with asterisk (*) in label
+
+3. **Standard Validation Functions**:
+   - Names: Use `nameSchema` or regex `/^[a-zA-ZäöüÄÖÜàâéèêëïîôùûçÀÂÉÈÊËÏÎÔÙÛÇ\s\-']+$/`
+   - Email: Use `isValidEmail()` from validation-rules.ts
+   - Phone: Use `isValidSwissPhone()` from normalize.ts
+   - Always validate both client-side (for UX) and server-side (for security)
+
 ### Single Source of Truth Principle
 **Critical**: Each piece of data should exist in exactly ONE place in the database.
 
@@ -491,6 +511,17 @@ export class CustomerService {
 - Always log technical errors to console while showing user-friendly messages
 - Use toast notifications for user feedback on errors
 
+### UI Text and Error Messages
+- **Language**: ALL user-facing text must be in German
+- **Error Message Examples**:
+  - Required field: "Dieses Feld ist erforderlich"
+  - Invalid email: "Ungültige E-Mail-Adresse"
+  - Invalid phone: "Ungültige Schweizer Telefonnummer (z.B. 079 123 45 67)"
+  - Character limits: "Maximal {n} Zeichen erlaubt"
+  - Minimum length: "Mindestens {n} Zeichen erforderlich"
+- **Field Labels**: Mark optional fields with "(optional)", required fields with "*"
+- **Placeholder Text**: Provide helpful examples (e.g., "079 123 45 67" for phone)
+
 ### Database Error Handling
 When encountering database errors:
 
@@ -686,8 +717,14 @@ The user will primarily request you perform software engineering tasks. This inc
 
 ### Comprehensive Testing Workflow
 After ANY code changes:
-1. **Type Safety**: `npm run typecheck` (MANDATORY)
-2. **Code Quality**: `npm run lint` (MANDATORY)
+1. **Type Safety**: `npm run typecheck` (MANDATORY - must pass with 0 errors)
+2. **Code Quality**: `npm run lint` (MANDATORY - address all errors, review warnings)
+   - Fix all ESLint errors before considering task complete
+   - Review warnings - while not blocking, they often indicate:
+     - Missing dependencies in useEffect hooks
+     - Potential performance issues
+     - Code style inconsistencies
+   - For persistent warnings that are intentional, add appropriate ESLint disable comments with justification
 3. **Runtime Check**: `timeout 10s npm run dev` to verify no startup errors
 4. **For UI Changes**:
    - Describe expected visual changes

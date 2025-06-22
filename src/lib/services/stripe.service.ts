@@ -138,24 +138,81 @@ export class StripeService {
     return session
   }
 
+  // Get active subscription for a customer
+  static async getActiveSubscription(
+    customerId: string
+  ): Promise<Stripe.Subscription | null> {
+    try {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 1
+      })
+      
+      return subscriptions.data[0] || null
+    } catch (error) {
+      console.error('Error fetching active subscription:', error)
+      return null
+    }
+  }
+
+  // Check if customer has any active subscription
+  static async hasActiveSubscription(customerId: string): Promise<boolean> {
+    const subscription = await this.getActiveSubscription(customerId)
+    return subscription !== null
+  }
+
   // Update subscription (upgrade/downgrade)
   static async updateSubscription(
     subscriptionId: string,
-    newPriceId: string
+    newPriceId: string,
+    options?: {
+      billingCycle?: 'monthly' | 'annual'
+      prorationBehavior?: Stripe.SubscriptionUpdateParams.ProrationBehavior
+    }
   ): Promise<Stripe.Subscription> {
-    // Get current subscription
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-    
-    // Update to new price
-    const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
-      items: [{
-        id: subscription.items.data[0].id,
-        price: newPriceId
-      }],
-      proration_behavior: 'create_prorations'
-    })
+    try {
+      // Get current subscription
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      
+      // Prepare update params
+      const updateParams: Stripe.SubscriptionUpdateParams = {
+        items: [{
+          id: subscription.items.data[0].id,
+          price: newPriceId
+        }],
+        proration_behavior: options?.prorationBehavior || 'create_prorations'
+      }
 
-    return updatedSubscription
+      // If billing cycle is changing, we might need to handle it differently
+      if (options?.billingCycle) {
+        // Add billing cycle metadata
+        updateParams.metadata = {
+          ...subscription.metadata,
+          billing_cycle: options.billingCycle
+        }
+      }
+      
+      // Update to new price
+      const updatedSubscription = await stripe.subscriptions.update(
+        subscriptionId, 
+        updateParams
+      )
+
+      // Re-fetch the subscription to ensure all fields are populated
+      // (Sometimes the update response doesn't include all fields like current_period_end)
+      const completeSubscription = await stripe.subscriptions.retrieve(
+        subscriptionId
+      )
+
+      return completeSubscription
+    } catch (error) {
+      console.error('Error updating subscription:', error)
+      if (error instanceof Stripe.errors.StripeError) {
+        throw new Error(`Fehler beim Aktualisieren des Abonnements: ${error.message}`)
+      }
+      throw error
+    }
   }
 
   // Cancel subscription at period end

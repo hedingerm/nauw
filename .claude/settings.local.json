@@ -72,7 +72,8 @@
       "Bash(timeout 10 npm run dev)",
       "Bash(git log:*)",
       "Bash(timeout 10s npm run dev)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(timeout 10s npm run typecheck)"
     ]
   },
   "enableAllProjectMcpServers": false

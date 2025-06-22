@@ -84,31 +84,66 @@ export default function UpgradePage() {
         ? selectedPlan.stripe_price_annual_id 
         : selectedPlan.stripe_price_monthly_id
 
-      // Create checkout session
-      const response = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          businessId,
-          priceId,
-          billingCycle,
-          mode: currentPlan ? "upgrade" : "subscription"
+      // If user has a current plan, use the upgrade endpoint
+      if (currentPlan) {
+        const response = await fetch("/api/billing/upgrade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId,
+            newPriceId: priceId,
+            billingCycle
+          })
         })
-      })
 
-      const data = await response.json()
-      
-      if (!response.ok) {
-        console.error("Checkout error:", data)
-        toast.error(data.details || "Fehler beim Erstellen der Checkout-Sitzung")
-        return
-      }
-      
-      if (data.url) {
-        window.location.href = data.url
+        const data = await response.json()
+        
+        if (!response.ok) {
+          console.error("Upgrade error:", data)
+          
+          // Check if we need to create a new subscription instead
+          if (data.requiresNewSubscription) {
+            toast.error(data.error || "Fehler beim Ändern des Plans")
+            // Redirect to checkout for new subscription
+            setTimeout(() => {
+              router.push("/billing")
+            }, 2000)
+            return
+          }
+          
+          toast.error(data.error || "Fehler beim Ändern des Plans")
+          return
+        }
+        
+        toast.success(data.message || "Plan erfolgreich geändert!")
+        setTimeout(() => router.push("/billing"), 1500)
+      } else {
+        // For new subscriptions, use checkout
+        const response = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId,
+            priceId,
+            billingCycle
+          })
+        })
+
+        const data = await response.json()
+        
+        if (!response.ok) {
+          console.error("Checkout error:", data)
+          toast.error(data.error || "Fehler beim Erstellen der Checkout-Sitzung")
+          return
+        }
+        
+        if (data.url) {
+          window.location.href = data.url
+        }
       }
     } catch (error) {
-      console.error("Error creating checkout session:", error)
+      console.error("Error processing plan change:", error)
+      toast.error("Ein unerwarteter Fehler ist aufgetreten")
     } finally {
       setProcessing(false)
     }

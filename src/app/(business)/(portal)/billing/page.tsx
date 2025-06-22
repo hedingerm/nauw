@@ -7,7 +7,7 @@ import { Button } from "@/src/components/ui/button"
 import { Badge } from "@/src/components/ui/badge"
 import { Progress } from "@/src/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
-import { CreditCard, Package, Receipt, TrendingUp, AlertCircle, ExternalLink } from "lucide-react"
+import { CreditCard, Package, Receipt, TrendingUp, AlertCircle, ExternalLink, RefreshCw } from "lucide-react"
 import { SubscriptionService, SubscriptionWithPlan } from "@/src/lib/services/subscription.service"
 import { UsageService } from "@/src/lib/services/usage.service"
 import { BillingService, Invoice } from "@/src/lib/services/billing.service"
@@ -15,6 +15,7 @@ import { createClient } from "@/src/lib/supabase/client"
 import { formatCurrency } from "@/src/lib/utils"
 import { formatDate } from "@/src/lib/utils/date"
 import { Alert, AlertDescription } from "@/src/components/ui/alert"
+import { UsageDetails } from "@/src/components/billing/usage-details"
 
 export default function BillingPage() {
   const router = useRouter()
@@ -23,9 +24,27 @@ export default function BillingPage() {
   const [usageData, setUsageData] = useState<any>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [businessId, setBusinessId] = useState<string>("")
+  const [syncingInvoices, setSyncingInvoices] = useState(false)
 
   useEffect(() => {
     loadBillingData()
+    
+    // Check for success parameter in URL
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('upgraded') === 'true') {
+      // Show success message if coming back from upgrade
+      const toast = document.createElement('div')
+      toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50'
+      toast.textContent = 'Ihr Plan wurde erfolgreich geändert!'
+      document.body.appendChild(toast)
+      
+      setTimeout(() => {
+        toast.remove()
+      }, 3000)
+      
+      // Clean up URL
+      window.history.replaceState({}, '', '/billing')
+    }
   }, [])
 
   async function loadBillingData() {
@@ -100,6 +119,47 @@ export default function BillingPage() {
     router.push("/billing/booster")
   }
 
+  async function handleSyncInvoices() {
+    setSyncingInvoices(true)
+    try {
+      const response = await fetch("/api/billing/sync-invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        // Show success message
+        const toast = document.createElement('div')
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50'
+        toast.textContent = `${result.syncedCount} Rechnungen erfolgreich synchronisiert`
+        document.body.appendChild(toast)
+        
+        setTimeout(() => {
+          toast.remove()
+        }, 3000)
+        
+        // Reload invoices
+        await loadBillingData()
+      } else {
+        // Show error message
+        const toast = document.createElement('div')
+        toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg z-50'
+        toast.textContent = 'Fehler beim Synchronisieren der Rechnungen'
+        document.body.appendChild(toast)
+        
+        setTimeout(() => {
+          toast.remove()
+        }, 3000)
+      }
+    } catch (error) {
+      console.error("Error syncing invoices:", error)
+    } finally {
+      setSyncingInvoices(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -113,6 +173,8 @@ export default function BillingPage() {
     past_due: "bg-yellow-500",
     canceled: "bg-red-500",
     incomplete: "bg-gray-500",
+    incomplete_expired: "bg-red-500",
+    unpaid: "bg-red-500",
     trialing: "bg-blue-500"
   }
 
@@ -121,6 +183,8 @@ export default function BillingPage() {
     past_due: "Überfällig",
     canceled: "Gekündigt",
     incomplete: "Unvollständig",
+    incomplete_expired: "Abgelaufen",
+    unpaid: "Unbezahlt",
     trialing: "Testphase"
   }
 
@@ -134,7 +198,15 @@ export default function BillingPage() {
         </Button>
       </div>
 
-      {/* Subscription Overview */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Übersicht</TabsTrigger>
+          <TabsTrigger value="usage">Nutzungsdetails</TabsTrigger>
+          <TabsTrigger value="invoices">Rechnungen</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Subscription Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -156,7 +228,15 @@ export default function BillingPage() {
                     {formatCurrency(subscription.plan.price_monthly)} / Monat
                   </p>
                 </div>
-                <Button onClick={handleUpgrade}>Plan ändern</Button>
+                {subscription.status === 'active' || subscription.status === 'trialing' ? (
+                  <Button onClick={handleUpgrade}>Plan ändern</Button>
+                ) : subscription.status === 'incomplete_expired' || subscription.status === 'canceled' ? (
+                  <Button onClick={() => router.push("/billing/upgrade")}>Neues Abo starten</Button>
+                ) : (
+                  <Button onClick={handleManageSubscription} variant="outline">
+                    Zahlung aktualisieren
+                  </Button>
+                )}
               </div>
 
               <div className="text-sm text-muted-foreground">
@@ -245,14 +325,33 @@ export default function BillingPage() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
 
-      {/* Invoices */}
+        <TabsContent value="usage">
+          {businessId && (
+            <UsageDetails businessId={businessId} subscriptionId={subscription?.id} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="invoices">
+          {/* Invoices */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Rechnungen
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Rechnungen
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleSyncInvoices}
+              disabled={syncingInvoices}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncingInvoices ? 'animate-spin' : ''}`} />
+              {syncingInvoices ? 'Synchronisiere...' : 'Synchronisieren'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {invoices.length > 0 ? (
@@ -284,6 +383,8 @@ export default function BillingPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

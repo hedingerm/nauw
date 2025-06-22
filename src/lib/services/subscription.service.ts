@@ -88,26 +88,61 @@ export class SubscriptionService {
   // Get subscription for a business
   static async getBusinessSubscription(businessId: string): Promise<SubscriptionWithPlan | null> {
     const supabase = await this.getClient()
-    const { data, error } = await supabase
+    
+    console.log("getBusinessSubscription called with businessId:", businessId)
+    
+    // First get the subscription
+    const { data: subscription, error: subError } = await supabase
       .from("Subscription")
-      .select(`
-        *,
-        plan:plan_id(*)
-      `)
+      .select("*")
       .eq("business_id", businessId)
       .eq("status", "active")
       .single()
 
-    if (error) {
-      if (error.code === "PGRST116") {
+    console.log("Subscription query result:", { 
+      data: subscription, 
+      error: subError,
+      errorCode: subError?.code 
+    })
+
+    if (subError) {
+      if (subError.code === "PGRST116") {
         // No subscription found
+        console.log("No subscription found (PGRST116)")
         return null
       }
-      console.error("Error fetching business subscription:", error)
+      console.error("Error fetching business subscription:", subError)
       throw new Error("Fehler beim Laden des Abonnements")
     }
 
-    return data as unknown as SubscriptionWithPlan
+    if (!subscription) {
+      console.log("Subscription data is null")
+      return null
+    }
+
+    // Then get the plan separately
+    const { data: plan, error: planError } = await supabase
+      .from("SubscriptionPlan")
+      .select("*")
+      .eq("id", subscription.plan_id)
+      .single()
+
+    if (planError) {
+      console.error("Error fetching subscription plan:", planError)
+      throw new Error("Fehler beim Laden des Tarifs")
+    }
+
+    console.log("Returning subscription with plan:", {
+      subscriptionId: subscription.id,
+      planId: plan.id,
+      planName: plan.name
+    })
+
+    // Combine the data
+    return {
+      ...subscription,
+      plan
+    } as SubscriptionWithPlan
   }
 
   // Create a new subscription

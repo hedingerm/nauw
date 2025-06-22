@@ -4,7 +4,7 @@ import { StripeService } from "@/src/lib/services/stripe.service"
 
 export async function POST(request: NextRequest) {
   try {
-    const { businessId, priceId, billingCycle, mode, amount } = await request.json()
+    const { businessId, priceId, billingCycle, mode, amount, isUpgrade } = await request.json()
     
     const response = new NextResponse()
     const supabase = createRouteHandlerClient(request, response)
@@ -41,6 +41,55 @@ export async function POST(request: NextRequest) {
         .from("Business")
         .update({ stripe_customer_id: stripeCustomerId })
         .eq("id", business.id)
+    }
+
+    // Check for existing active subscription if this is a subscription mode
+    if (mode !== "booster") {
+      // First check if there's already a subscription in our database
+      const { data: existingSubscription } = await supabase
+        .from("Subscription")
+        .select("id, stripe_customer_id, status")
+        .eq("business_id", business.id)
+        .in("status", ["active", "trialing", "past_due"])
+        .single()
+      
+      if (existingSubscription) {
+        // If subscription exists but business has wrong customer ID, fix it
+        if (existingSubscription.stripe_customer_id !== stripeCustomerId) {
+          console.log("Fixing mismatched stripe_customer_id:", {
+            businessId: business.id,
+            businessCustomerId: stripeCustomerId,
+            subscriptionCustomerId: existingSubscription.stripe_customer_id
+          })
+          
+          // Update business with correct customer ID from subscription
+          stripeCustomerId = existingSubscription.stripe_customer_id
+          await supabase
+            .from("Business")
+            .update({ stripe_customer_id: stripeCustomerId })
+            .eq("id", business.id)
+        }
+        
+        // Prevent creating duplicate subscriptions
+        return NextResponse.json({ 
+          error: "Sie haben bereits ein aktives Abonnement. Bitte verwenden Sie die Option 'Plan ändern' um Ihr Abonnement zu aktualisieren.",
+          hasActiveSubscription: true,
+          isUpgrade: true
+        }, { status: 400 })
+      }
+      
+      // Also check Stripe directly if we have a customer ID
+      if (stripeCustomerId) {
+        const hasActiveSubscription = await StripeService.hasActiveSubscription(stripeCustomerId)
+        
+        if (hasActiveSubscription) {
+          // Prevent creating duplicate subscriptions
+          return NextResponse.json({ 
+            error: "Sie haben bereits ein aktives Abonnement in Stripe. Bitte verwenden Sie die Option 'Plan ändern' um Ihr Abonnement zu aktualisieren.",
+            hasActiveSubscription: true
+          }, { status: 400 })
+        }
+      }
     }
 
     // Get base URL with fallback for production

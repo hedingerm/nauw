@@ -233,7 +233,7 @@ export function DateTimePicker({
                     Die Zahl zeigt an, wie viele Mitarbeiter zu dieser Zeit verfügbar sind.
                   </p>
                 )}
-                <div className="grid grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-[400px] overflow-y-auto pr-3 pt-2">
                   {availableSlots.map((slot) => (
                     <div key={`${slot.time}-${slot.employeeId || 'any'}`} className="relative">
                       <Button
