@@ -121,15 +121,9 @@ export async function POST(request: NextRequest) {
       { billingCycle }
     )
     
-    // Log subscription details for debugging
-    console.log("Updated subscription details:", {
-      id: updatedSubscription.id,
-      status: updatedSubscription.status,
-      has_period_end: !!updatedSubscription.current_period_end,
-      period_end: updatedSubscription.current_period_end,
-      has_period_start: !!updatedSubscription.current_period_start,
-      period_start: updatedSubscription.current_period_start
-    })
+    // Get period dates from subscription items
+    const periodEnd = updatedSubscription.items.data[0]?.current_period_end
+    const periodStart = updatedSubscription.items.data[0]?.current_period_start
     
     // If the subscription has a different customer ID than the business, update the business
     if (currentSubscription.stripe_customer_id && 
@@ -152,8 +146,8 @@ export async function POST(request: NextRequest) {
       subscription: {
         id: updatedSubscription.id,
         status: updatedSubscription.status,
-        current_period_end: updatedSubscription.current_period_end 
-          ? new Date(updatedSubscription.current_period_end * 1000).toISOString()
+        current_period_end: periodEnd 
+          ? new Date(periodEnd * 1000).toISOString()
           : null
       },
       message: "Ihr Abonnement wurde erfolgreich aktualisiert."

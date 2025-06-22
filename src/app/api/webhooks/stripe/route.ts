@@ -208,19 +208,15 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     .eq('stripe_subscription_id', subscription.id)
     .single()
 
-  // Stripe subscription objects may have current_period_start and current_period_end
-  // but they might be undefined during certain webhook events
-  const subscriptionWithPeriods = subscription as Stripe.Subscription & {
-    current_period_start?: number
-    current_period_end?: number
-  }
+  // Period dates are in the subscription items, not at the root level
+  const subscriptionItem = subscription.items.data[0]
   
   // Safe date handling with fallbacks
   let periodStart: Date
   let periodEnd: Date
   
-  if (subscriptionWithPeriods.current_period_start) {
-    periodStart = new Date(subscriptionWithPeriods.current_period_start * 1000)
+  if (subscriptionItem?.current_period_start) {
+    periodStart = new Date(subscriptionItem.current_period_start * 1000)
   } else {
     console.warn('Subscription missing current_period_start, using current date', {
       subscriptionId: subscription.id,
@@ -229,8 +225,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     periodStart = new Date()
   }
   
-  if (subscriptionWithPeriods.current_period_end) {
-    periodEnd = new Date(subscriptionWithPeriods.current_period_end * 1000)
+  if (subscriptionItem?.current_period_end) {
+    periodEnd = new Date(subscriptionItem.current_period_end * 1000)
   } else {
     console.warn('Subscription missing current_period_end, calculating based on billing cycle', {
       subscriptionId: subscription.id,
@@ -243,14 +239,14 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   }
   
   // Validate period dates only if both were provided
-  if (subscriptionWithPeriods.current_period_start && subscriptionWithPeriods.current_period_end) {
+  if (subscriptionItem?.current_period_start && subscriptionItem?.current_period_end) {
     if (periodEnd <= periodStart) {
       console.error('Invalid subscription period dates:', {
         subscriptionId: subscription.id,
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
-        rawStart: subscriptionWithPeriods.current_period_start,
-        rawEnd: subscriptionWithPeriods.current_period_end
+        rawStart: subscriptionItem.current_period_start,
+        rawEnd: subscriptionItem.current_period_end
       })
       throw new Error('Invalid subscription period: end date must be after start date')
     }
@@ -266,7 +262,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     periodStart: periodStart.toISOString(),
     periodEnd: periodEnd.toISOString(),
     status: subscription.status,
-    hasPeriodDates: !!(subscriptionWithPeriods.current_period_start && subscriptionWithPeriods.current_period_end)
+    hasPeriodDates: !!(subscriptionItem?.current_period_start && subscriptionItem?.current_period_end)
   })
 
   const subscriptionData = {
@@ -393,6 +389,31 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     }
   }
 
+  // Look up subscription if this invoice is for a subscription
+  let subscriptionId: string | null = null
+  const invoiceWithSubscription = invoice as Stripe.Invoice & { subscription?: string }
+  if (invoiceWithSubscription.subscription) {
+    const { data: subscription } = await supabase
+      .from('Subscription')
+      .select('id')
+      .eq('stripe_subscription_id', invoiceWithSubscription.subscription)
+      .single()
+    
+    if (subscription) {
+      subscriptionId = subscription.id
+      console.log('Found subscription for invoice:', {
+        invoiceId: invoice.id,
+        subscriptionId: subscription.id,
+        stripeSubscriptionId: invoiceWithSubscription.subscription
+      })
+    } else {
+      console.warn('Subscription not found for invoice:', {
+        invoiceId: invoice.id,
+        stripeSubscriptionId: invoiceWithSubscription.subscription
+      })
+    }
+  }
+
   // Safe period date handling
   let periodStart: string
   let periodEnd: string
@@ -436,7 +457,8 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
       unit_price: line.unit_amount ? line.unit_amount / 100 : 0,
       amount: line.amount / 100
     })),
-    metadata: invoice.metadata || {}
+    metadata: invoice.metadata || {},
+    subscription_id: subscriptionId
   }
 
   // Check if invoice exists
@@ -491,12 +513,12 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   }
 
   // Update subscription period if this is a subscription invoice
-  const invoiceWithSubscription = invoice as Stripe.Invoice & { subscription?: string }
-  if (invoiceWithSubscription.subscription) {
+  const invoiceWithSub2 = invoice as Stripe.Invoice & { subscription?: string }
+  if (invoiceWithSub2.subscription) {
     const { data: subscription } = await supabase
       .from('Subscription')
       .select('id')
-      .eq('stripe_subscription_id', invoiceWithSubscription.subscription)
+      .eq('stripe_subscription_id', invoiceWithSub2.subscription)
       .single()
 
     if (subscription) {
@@ -567,6 +589,26 @@ async function handleInvoiceFinalized(invoice: Stripe.Invoice) {
     }
   }
 
+  // Look up subscription if this invoice is for a subscription
+  let subscriptionId: string | null = null
+  const invoiceWithSub = invoice as Stripe.Invoice & { subscription?: string }
+  if (invoiceWithSub.subscription) {
+    const { data: subscription } = await supabase
+      .from('Subscription')
+      .select('id')
+      .eq('stripe_subscription_id', invoiceWithSub.subscription)
+      .single()
+    
+    if (subscription) {
+      subscriptionId = subscription.id
+      console.log('Found subscription for finalized invoice:', {
+        invoiceId: invoice.id,
+        subscriptionId: subscription.id,
+        stripeSubscriptionId: invoiceWithSub.subscription
+      })
+    }
+  }
+
   // Safe period date handling
   let periodStart: string
   let periodEnd: string
@@ -602,7 +644,8 @@ async function handleInvoiceFinalized(invoice: Stripe.Invoice) {
       unit_price: line.unit_amount ? line.unit_amount / 100 : 0,
       amount: line.amount / 100
     })),
-    metadata: invoice.metadata || {}
+    metadata: invoice.metadata || {},
+    subscription_id: subscriptionId
   }
 
   // Check if invoice exists
@@ -641,12 +684,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   const supabase = createServiceRoleClient()
   
   // Update subscription status to past_due
-  const invoiceWithSubscription = invoice as Stripe.Invoice & { subscription?: string }
-  if (invoiceWithSubscription.subscription) {
+  const invoiceWithSub3 = invoice as Stripe.Invoice & { subscription?: string }
+  if (invoiceWithSub3.subscription) {
     await supabase
       .from('Subscription')
       .update({ status: 'past_due' })
-      .eq('stripe_subscription_id', invoiceWithSubscription.subscription)
+      .eq('stripe_subscription_id', invoiceWithSub3.subscription)
   }
 
   // Find business and send notification

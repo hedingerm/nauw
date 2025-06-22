@@ -205,6 +205,8 @@ export class StripeService {
         subscriptionId
       )
 
+      // Remove debug logging
+
       return completeSubscription
     } catch (error) {
       console.error('Error updating subscription:', error)
