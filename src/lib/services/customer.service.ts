@@ -66,13 +66,13 @@ export class CustomerService {
     businessId: string
     firstName: string
     lastName: string
-    email: string
+    email?: string
     phone: string
   }): Promise<Customer> {
     const supabase = await this.getClient()
     
     const name = `${data.firstName} ${data.lastName}`
-    const normalizedEmail = normalizeEmail(data.email)
+    const normalizedEmail = data.email ? normalizeEmail(data.email) : null
     const normalizedPhone = normalizePhone(data.phone)
     
     const { data: customer, error } = await supabase

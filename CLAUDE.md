@@ -91,16 +91,20 @@ npm run test:e2e     # Run E2E tests
 
 ## Architecture Guidelines
 
-### Database Operations Workflow
+### Database Operations Workflow (MANDATORY)
 Before implementing ANY database operation, follow this strict workflow:
 
-1. **Verify Schema First** (MANDATORY):
+1. **ALWAYS Verify Schema First**:
    ```sql
-   -- Check exact column names and types
+   -- MANDATORY: Run this before any implementation
    SELECT column_name, data_type, is_nullable, column_default 
    FROM information_schema.columns 
    WHERE table_name = 'YourTable'
    ORDER BY ordinal_position;
+   
+   -- For JSON columns, also check actual data format:
+   SELECT DISTINCT jsonb_pretty(your_json_column) 
+   FROM "YourTable" LIMIT 1;
    
    -- Verify RLS policies
    SELECT * FROM pg_policies WHERE tablename = 'YourTable';
@@ -534,6 +538,19 @@ When encountering database errors:
 - Prefer editing existing files over creating new ones
 - Only create new files when adding distinct features or components
 
+### Component Refactoring Patterns
+When refactoring large components (>500 lines):
+1. **Extract Custom Hooks First**: Move state logic and effects to `use*` hooks
+2. **Component Extraction Order**:
+   - Identify logical sections (form parts, display sections)
+   - Extract the most reusable parts first
+   - Keep related components in the same directory
+   - Pass minimal props - use hooks for shared state
+3. **Naming Conventions**:
+   - Hooks: `use[Feature]` (e.g., `useBookingData`)
+   - Sub-components: `[Parent][Section]` (e.g., `BookingDateTimePicker`)
+4. **Always preserve functionality** - test after each extraction
+
 ### Implementation Phases
 Follow this sequence from the PRD:
 1. **Phase 1**: ✅ Project setup, database schema, auth, basic architecture
@@ -556,6 +573,36 @@ Follow this sequence from the PRD:
 - When creating reusable form components that will be used inside other forms, use div containers instead of form elements
 - For form components that need validation without a form wrapper, use react-hook-form's `trigger()` and `getValues()` methods
 - Always check parent component structure before adding form elements
+
+### Plan Mode Handling
+When users indicate they want to plan or review changes before implementation:
+- Use the `exit_plan_mode` tool to present your plan
+- In plan mode, you MUST NOT make any edits or run modifying commands
+- Only use read-only tools (Read, Grep, Glob, LS)
+- Present a clear, structured plan with specific files and changes
+- Wait for user approval before implementing
+
+### Git Operations and Conflict Resolution
+- NEVER commit unless explicitly requested by the user
+- When pushing encounters conflicts:
+  1. Always pull with `--no-rebase` to preserve history
+  2. Show the user what changes are being merged
+  3. Never force push without explicit permission
+- Before pushing, always check:
+  - Current branch: `git branch --show-current`
+  - Remote status: `git status`
+  - Recent commits: `git log --oneline -5`
+
+### UI/UX Consistency Verification
+When working with preview/design components:
+1. **Always compare preview with actual implementation**
+2. **Check that all config options are applied**:
+   - Theme colors and styles
+   - Layout settings
+   - Feature toggles
+   - Content overrides
+3. **Use side-by-side file comparison** when updating matching components
+4. **Test visual changes** by describing what should appear
 
 ## Project Structure (once initialized)
 
@@ -636,12 +683,21 @@ The user will primarily request you perform software engineering tasks. This inc
 - Use the available search tools to understand the codebase and the user's query. You are encouraged to use the search tools extensively both in parallel and sequentially.
 - Implement the solution using all tools available to you
 - Verify the solution if possible with tests. NEVER assume specific test framework or test script. Check the README or search codebase to determine the testing approach.
-- **MANDATORY**: After completing any code changes, you MUST run:
-  1. `npm run typecheck` - catches type errors before runtime
-  2. `npm run lint` - ensures code quality
-  3. `npm run dev` briefly to verify no runtime errors
-  - If any command fails, fix the issues before considering the task complete
-  - These commands have caught critical issues in this project including import errors and type mismatches
+
+### Comprehensive Testing Workflow
+After ANY code changes:
+1. **Type Safety**: `npm run typecheck` (MANDATORY)
+2. **Code Quality**: `npm run lint` (MANDATORY)
+3. **Runtime Check**: `timeout 10s npm run dev` to verify no startup errors
+4. **For UI Changes**:
+   - Describe expected visual changes
+   - Verify all interactive elements work
+   - Check responsive behavior if applicable
+5. **For Database Changes**:
+   - Test with both authenticated and anonymous roles
+   - Verify RLS policies work as expected
+   - Check error handling for edge cases
+
 - **Test Database Operations**:
   - For any RLS policy changes, test with relevant roles:
     ```sql
@@ -656,18 +712,19 @@ The user will primarily request you perform software engineering tasks. This inc
 - VERY IMPORTANT: When you have completed a task, you MUST run the lint and typecheck commands (eg. npm run lint, npm run typecheck, ruff, etc.) with Bash if they were provided to you to ensure your code is correct. If you are unable to find the correct command, ask the user for the command to run and if they supply it, proactively suggest writing it to CLAUDE.md so that you will know to run it next time.
 NEVER commit changes unless the user explicitly asks you to. It is VERY IMPORTANT to only commit when explicitly asked, otherwise the user will feel that you are being too proactive.
 
-### Sequential Thinking MCP Usage
-When working with complex problems or multi-step analysis, use the `mcp__sequential-thinking__sequentialthinking` tool to:
-- Break down complex problems into manageable steps
-- Plan and design solutions with room for revision
-- Analyze problems where the full scope isn't clear initially
-- Generate and verify solution hypotheses iteratively
-
-The tool allows dynamic thinking that can branch, revise previous thoughts, and adjust the total number of thoughts needed as understanding deepens. Use it for:
-- Complex debugging scenarios
+### Sequential Thinking MCP Usage (REQUIRED for complex tasks)
+Use the `mcp__sequential-thinking__sequentialthinking` tool for:
+- Any refactoring involving 3+ files
+- Planning database schema changes
+- Debugging issues that span multiple components
 - Architecture design decisions
+- When the user mentions "plan", "think through", or "design"
+- Before implementing any feature that affects multiple parts of the system
+- Complex debugging scenarios
 - Multi-step refactoring plans
 - Problems requiring hypothesis generation and verification
+
+The tool allows dynamic thinking that can branch, revise previous thoughts, and adjust the total number of thoughts needed as understanding deepens.
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.

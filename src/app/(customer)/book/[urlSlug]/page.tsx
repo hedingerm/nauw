@@ -21,6 +21,8 @@ import { CustomerService } from '@/src/lib/services/customer.service'
 import { AppointmentService } from '@/src/lib/services/appointment.service'
 import { BookingPageConfigService } from '@/src/lib/services/booking-config.service'
 import { cn } from '@/src/lib/utils/cn'
+import { isValidEmail } from '@/src/lib/schemas/validation-rules'
+import { isValidSwissPhone } from '@/src/lib/utils/normalize'
 import type { Database } from '@/src/lib/supabase/database.types'
 
 type Service = Database['public']['Tables']['Service']['Row']
@@ -183,11 +185,33 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
       case 'customer':
         const phoneRequired = config?.features.requirePhone ?? true
         const notesRequired = config?.content.requireNotes ?? false
-        return customerData.firstName && 
-               customerData.lastName && 
-               customerData.email && 
-               (!phoneRequired || customerData.phone) &&
-               (!notesRequired || customerData.notes)
+        
+        // Validate name (same pattern as in customer-form)
+        const validateName = (value: string): boolean => {
+          if (!value.trim()) return false
+          if (value.length < 2 || value.length > 100) return false
+          const namePattern = /^[a-zA-ZäöüÄÖÜàâéèêëïîôùûçÀÂÉÈÊËÏÎÔÙÛÇ\s\-']+$/
+          return namePattern.test(value)
+        }
+        
+        // Validate email (optional)
+        const validateEmail = (email: string): boolean => {
+          if (!email) return true // Email is optional
+          return isValidEmail(email)
+        }
+        
+        // Validate phone
+        const validatePhone = (phone: string): boolean => {
+          if (!phoneRequired) return true
+          if (!phone.trim()) return false
+          return isValidSwissPhone(phone)
+        }
+        
+        return validateName(customerData.firstName) && 
+               validateName(customerData.lastName) && 
+               validateEmail(customerData.email) && 
+               validatePhone(customerData.phone) &&
+               (!notesRequired || customerData.notes.trim())
       default:
         return false
     }
@@ -205,7 +229,7 @@ export default function BookingPage({ params: paramsPromise }: BookingPageProps)
         businessId: businessId,
         firstName: customerData.firstName,
         lastName: customerData.lastName,
-        email: customerData.email,
+        email: customerData.email || undefined,
         phone: customerData.phone || ''
       })
 
